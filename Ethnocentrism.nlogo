@@ -42,6 +42,14 @@ to setup-full
   reset-ticks
 end
 
+;; creates a world with exactly one agent on the corner patch
+to setup-single
+  clear-all
+  initialize-variables
+  ask patch 0 0 [ create-turtle ]
+  reset-ticks
+end
+
 to initialize-variables
   ;; initialize all the variables
   set meetown 0
@@ -72,7 +80,8 @@ end
 ;; creates a new agent in the world
 to create-turtle  ;; patch procedure
   sprout 1 [
-    set color random-color
+    ; set color random-color
+    set color red
     ;; determine the strategy for interacting with someone of the same color
     set cooperate-with-same? (random-float 1.0 < immigrant-chance-cooperate-with-same)
     ;; determine the strategy for interacting with someone of a different color
@@ -83,7 +92,8 @@ to create-turtle  ;; patch procedure
 end
 
 to-report random-color
-  report one-of [red blue yellow green]
+  ;report one-of [red blue yellow green]
+  report one-of [red blue]
 end
 
 ;; this is used to clear stats that change between each tick
@@ -386,7 +396,7 @@ immigrants-per-day
 immigrants-per-day
 0.0
 100.0
-1.0
+0.0
 1.0
 1
 NIL
@@ -548,6 +558,104 @@ Circles cooperate with same color\nSquares defect with same color\nFilled-in sha
 11
 0.0
 0
+
+PLOT
+9
+535
+323
+763
+Color Counts
+time
+count
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"red" 1.0 0 -2674135 true "" "plotxy ticks count turtles with [color = red]"
+"green" 1.0 0 -10899396 true "" "plotxy ticks count turtles with [color = green]"
+"yellow" 1.0 0 -1184463 true "" "plotxy ticks count turtles with [color = yellow]"
+"pen-3" 1.0 0 -13345367 true "" "plotxy ticks count turtles with [color = blue]"
+
+BUTTON
+380
+508
+478
+541
+NIL
+setup-single
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+PLOT
+362
+567
+678
+808
+Blue Strategy Counts
+time
+percentage
+0.0
+10.0
+0.0
+100.0
+true
+true
+"" ""
+PENS
+"CC" 1.0 0 -10899396 true "" "plotxy ticks count turtles with [shape = \"circle\" and color = blue] / count turtles with [ color = blue ] * 100"
+"CD" 1.0 0 -2674135 true "" "plotxy ticks count turtles with [shape = \"circle 2\" and color = blue] / count turtles with [ color = blue ] * 100"
+"DC" 1.0 0 -1184463 true "" "plotxy ticks count turtles with [shape = \"square\" and color = blue] / count turtles with [ color = blue ] * 100"
+"DD" 1.0 0 -16777216 true "" "plotxy ticks count turtles with [shape = \"square 2\" and color = blue] / count turtles with [ color = blue ] * 100"
+
+PLOT
+704
+571
+1047
+809
+Red Strategy Counts
+time
+percentage
+0.0
+10.0
+0.0
+100.0
+true
+true
+"" ""
+PENS
+"CC" 1.0 0 -10899396 true "" "plotxy ticks count turtles with [shape = \"circle\" and color = red] / count turtles with [ color = red ] * 100"
+"CD" 1.0 0 -2674135 true "" "plotxy ticks count turtles with [shape = \"circle 2\" and color = red] / count turtles with [ color = red ] * 100"
+"DC" 1.0 0 -1184463 true "" "plotxy ticks count turtles with [shape = \"square\" and color = red] / count turtles with [ color = red ] * 100"
+"DD" 1.0 0 -16777216 true "" "plotxy ticks count turtles with [shape = \"square 2\" and color = red] / count turtles with [ color = red ] * 100"
+
+PLOT
+832
+28
+1187
+360
+Total Population
+time
+count
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "plotxy ticks count turtles"
 
 @#$#@#$#@
 ## WHAT IS IT?
@@ -937,7 +1045,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.1.1
+NetLogo 6.0.2
 @#$#@#$#@
 setup-full repeat 150 [ go ]
 @#$#@#$#@
