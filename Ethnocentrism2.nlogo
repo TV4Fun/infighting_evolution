@@ -1,5 +1,5 @@
 ;; agents have a probablity to reproduce and a strategy
-turtles-own [ ptr cooperate-with-same? cooperate-with-different? ]
+turtles-own [ ptr cooperate-with-same? cooperate-with-different? color-blind? ]
 
 globals [
   ;; the remaining variables support the replication of published experiments
@@ -86,6 +86,8 @@ to create-turtle  ;; patch procedure
     set cooperate-with-same? (random-float 1.0 < immigrant-chance-cooperate-with-same)
     ;; determine the strategy for interacting with someone of a different color
     set cooperate-with-different? (random-float 1.0 < immigrant-chance-cooperate-with-different)
+    ;; determine whether the turtle is allowed to consider color in its interactions
+    set color-blind? (random-float 1.0 < immigrant-chance-color-blind)
     ;; change the shape of the agent on the basis of the strategy
     update-shape
   ]
@@ -141,7 +143,7 @@ to interact  ;; turtle procedure
     set meet meet + 1
     set meet-agg meet-agg + 1
     ;; do one thing if the individual interacting is the same color as me
-    if color = [color] of myself [
+    if color = [color] of myself or [color-blind?] of myself [
       ;; record the fact the agent met someone of the own color
       set meetown meetown + 1
       set meetown-agg meetown-agg + 1
@@ -206,6 +208,9 @@ to mutate  ;; turtle procedure
   if random-float 1.0 < mutation-rate [
     set cooperate-with-different? not cooperate-with-different?
   ]
+  if random-float 1.0 < mutation-rate [
+    set color-blind? not color-blind?
+  ]
   ;; make sure the shape of the agent reflects its strategy
   update-shape
 end
@@ -219,17 +224,24 @@ end
 
 ;; make sure the shape matches the strategy
 to update-shape
-  ;; if the agent cooperates with same they are a circle
-  ifelse cooperate-with-same? [
-    ifelse cooperate-with-different?
+  ifelse color-blind? [
+    ifelse cooperate-with-same?
+    [ set shape "triangle" ]
+    [ set shape "triangle 2" ]
+  ]
+  [
+    ;; if the agent cooperates with same they are a circle
+    ifelse cooperate-with-same? [
+      ifelse cooperate-with-different?
       [ set shape "circle" ]    ;; filled in circle (altruist)
       [ set shape "circle 2" ]  ;; empty circle (ethnocentric)
-  ]
-  ;; if the agent doesn't cooperate with same they are a square
-  [
-    ifelse cooperate-with-different?
+    ]
+    ;; if the agent doesn't cooperate with same they are a square
+    [
+      ifelse cooperate-with-different?
       [ set shape "square" ]    ;; filled in square (cosmopolitan)
       [ set shape "square 2" ]  ;; empty square (egoist)
+    ]
   ]
 end
 
@@ -426,7 +438,7 @@ cost-of-giving
 cost-of-giving
 0.0
 1.0
-0.01
+0.02
 0.01
 1
 NIL
@@ -501,6 +513,8 @@ PENS
 "CD" 1.0 0 -2674135 true "" "plotxy ticks count turtles with [shape = \"circle 2\"]"
 "DC" 1.0 0 -4079321 true "" "plotxy ticks count turtles with [shape = \"square\"]"
 "DD" 1.0 0 -16777216 true "" "plotxy ticks count turtles with [shape = \"square 2\"]"
+"C" 1.0 0 -13791810 true "" "plotxy ticks count turtles with [shape = \"triangle\"]"
+"D" 1.0 0 -5825686 true "" "plotxy ticks count turtles with [shape = \"triangle 2\"]"
 
 BUTTON
 130
@@ -528,7 +542,7 @@ immigrant-chance-cooperate-with-same
 immigrant-chance-cooperate-with-same
 0.0
 1.0
-0.5
+0.0
 0.01
 1
 NIL
@@ -543,7 +557,7 @@ immigrant-chance-cooperate-with-different
 immigrant-chance-cooperate-with-different
 0.0
 1.0
-0.5
+1.0
 0.01
 1
 NIL
@@ -656,6 +670,40 @@ false
 "" ""
 PENS
 "default" 1.0 0 -16777216 true "" "plotxy ticks count turtles"
+
+SLIDER
+868
+440
+1076
+473
+immigrant-chance-color-blind
+immigrant-chance-color-blind
+0
+1
+1.0
+0.01
+1
+NIL
+HORIZONTAL
+
+PLOT
+1213
+41
+1645
+348
+Color Blind Counts
+time
+counts
+0.0
+10.0
+0.0
+10.0
+true
+true
+"" ""
+PENS
+"Color Blind" 1.0 0 -6459832 true "" "plotxy ticks count turtles with [color-blind?]"
+"Color Aware" 1.0 0 -13345367 true "" "plotxy ticks count turtles with [not color-blind?]"
 
 @#$#@#$#@
 ## WHAT IS IT?
