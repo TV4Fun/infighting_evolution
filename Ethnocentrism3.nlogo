@@ -1,5 +1,5 @@
 ;; agents have a probablity to reproduce and a strategy
-turtles-own [ ptr cooperate-with-same? cooperate-with-different? different-threshold ]
+turtles-own [ ptr is-cosmopolitan? different-threshold tag-string ]
 
 globals [ tests-passed? ]
 
@@ -14,20 +14,19 @@ end
 ;; creates a new agent in the world
 to create-turtle  ;; patch procedure
   sprout 1 [
-    ; set initial color to red
-    set color red
-    ;; determine the strategy for interacting with someone of the same color
-    set cooperate-with-same? (random-float 1.0 < immigrant-chance-cooperate-with-same)
-    ;; determine the strategy for interacting with someone of a different color
-    set cooperate-with-different? (random-float 1.0 < immigrant-chance-cooperate-with-different)
+    set tag-string random-tag-string
+    set is-cosmopolitan? ifelse-value random 2 = 0 [true][false]
+    ;; Set difference threshold to a random value in the range [0, num-tags + 1]
+    set different-threshold random num-tags + 2
+    ;; Set the color of the agent based on tag string
+    update-color
     ;; change the shape of the agent on the basis of the strategy
     update-shape
   ]
 end
 
-to-report random-color
-  ;report one-of [red blue yellow green]
-  report one-of [red blue]
+to-report random-tag-string
+  report n-values num-tags [ random 2 ]
 end
 
 ;; the main routine
@@ -45,14 +44,14 @@ to go
 end
 
 to interact  ;; turtle procedure
-
   ;; interact with Von Neumann neighborhood
   ask turtles-on neighbors4 [
     ;; the commands inside the ASK are written from the point of view
     ;; of the agent being interacted with.  To refer back to the agent
     ;; that initiated the interaction, we use the MYSELF primitive.
+    let different? hamming-distance tag-string [tag-string] of myself >= [different-threshold] of myself
     ;; cooperate or not based on color and strategy
-    if (color = [color] of myself and [cooperate-with-same?] of myself) or (color != [color] of myself and [cooperate-with-different?] of myself) [
+    if (not different? and not [is-cosmopolitan?] of myself) or (different? and [is-cosmopolitan?] of myself) [
       receive-help
     ]
   ]
@@ -83,20 +82,22 @@ end
 
 ;; modify the children of agents according to the mutation rate
 to mutate  ;; turtle procedure
-  ;; mutate the color
-  if random-float 1.0 < mutation-rate [
-    let old-color color
-    while [color = old-color]
-      [ set color random-color ]
-  ]
+  ;; Mutate the tag string
+  set tag-string map [ i -> ifelse-value random-float 1.0 < mutation-rate [1 - i][i] ] tag-string
   ;; mutate the strategy flags;
-  ;; use NOT to toggle the flag
+  ;; Use a smaller mutation probability for is-cosmopolitan
+  if random-float 1.0 < mutation-rate ^ 2 [ set is-cosmopolitan? not is-cosmopolitan? ]
+  ;; Mutate by at most 1. Bound in the range [0, num-tags + 1]
   if random-float 1.0 < mutation-rate [
-    set cooperate-with-same? not cooperate-with-same?
+    ifelse different-threshold = 0
+    [ set different-threshold 1 ]
+    [ ifelse different-threshold = num-tags + 1 or random 2 = 0
+      [ set different-threshold different-threshold - 1 ]
+      [ set different-threshold different-threshold + 1 ]
+    ]
   ]
-  if random-float 1.0 < mutation-rate [
-    set cooperate-with-different? not cooperate-with-different?
-  ]
+  ;; Update the color in case the tag string changed
+  update-color
   ;; make sure the shape of the agent reflects its strategy
   update-shape
 end
@@ -108,24 +109,44 @@ to death
   ]
 end
 
+to update-color
+  ifelse num-tags = 0
+  [ set color red ]
+  [
+    let hue 180 * first tag-string
+    set color hsb hue 100 100
+  ]
+end
+
 ;; make sure the shape matches the strategy
 to update-shape
   ;; if the agent cooperates with same they are a circle
-  ifelse cooperate-with-same? [
-    ifelse cooperate-with-different?
-      [ set shape "circle" ]    ;; filled in circle (altruist)
-      [ set shape "circle 2" ]  ;; empty circle (ethnocentric)
-  ]
+  if is-cc? [ set shape "circle" ]  ;; filled in circle (altruist)
+  if is-cd? [ set shape "circle 2" ]  ;; filled in circle (altruist)
   ;; if the agent doesn't cooperate with same they are a square
-  [
-    ifelse cooperate-with-different?
-      [ set shape "square" ]    ;; filled in square (cosmopolitan)
-      [ set shape "square 2" ]  ;; empty square (egoist)
-  ]
+  if is-dc? [ set shape "square" ]  ;; filled in square (cosmopolitan)
+  if is-dd? [ set shape "square 2" ]  ;; empty square (egoist)
 end
 
 to-report hamming-distance [ list-1 list-2 ]
   report sum (map [ [x y] -> ifelse-value x = y [0][1] ] list-1 list-2)
+end
+
+;; convenience turtle reporters for the 1-tag case
+to-report is-cc?
+  report (different-threshold = 2 and not is-cosmopolitan?) or (different-threshold = 0 and is-cosmopolitan?)
+end
+
+to-report is-cd?
+  report different-threshold = 1 and not is-cosmopolitan?
+end
+
+to-report is-dc?
+  report different-threshold = 1 and is-cosmopolitan?
+end
+
+to-report is-dd?
+  report (different-threshold = 2 and is-cosmopolitan?) or (different-threshold = 0 and not is-cosmopolitan?)
 end
 
 ;; Testing code
@@ -248,7 +269,7 @@ initial-PTR
 initial-PTR
 0.0
 1.0
-0.12
+0.17
 0.01
 1
 NIL
@@ -317,10 +338,10 @@ true
 true
 "" ""
 PENS
-"CC" 1.0 0 -10899396 true "" "plotxy ticks count turtles with [shape = \"circle\"]"
-"CD" 1.0 0 -2674135 true "" "plotxy ticks count turtles with [shape = \"circle 2\"]"
-"DC" 1.0 0 -4079321 true "" "plotxy ticks count turtles with [shape = \"square\"]"
-"DD" 1.0 0 -16777216 true "" "plotxy ticks count turtles with [shape = \"square 2\"]"
+"CC" 1.0 0 -10899396 true "" "plotxy ticks count turtles with [is-cc?]"
+"CD" 1.0 0 -2674135 true "" "plotxy ticks count turtles with [is-cd?]"
+"DC" 1.0 0 -4079321 true "" "plotxy ticks count turtles with [is-dc?]"
+"DD" 1.0 0 -16777216 true "" "plotxy ticks count turtles with [is-dd?]"
 
 SLIDER
 5
@@ -378,10 +399,8 @@ true
 false
 "" ""
 PENS
-"red" 1.0 0 -2674135 true "" "plotxy ticks count turtles with [color = red]"
-"green" 1.0 0 -10899396 true "" "plotxy ticks count turtles with [color = green]"
-"yellow" 1.0 0 -1184463 true "" "plotxy ticks count turtles with [color = yellow]"
-"pen-3" 1.0 0 -13345367 true "" "plotxy ticks count turtles with [color = blue]"
+"red" 1.0 0 -2674135 true "" "plotxy ticks count turtles with [first tag-string = 0]"
+"cyan" 1.0 0 -11221820 true "" "plotxy ticks count turtles with [first tag-string = 1]"
 
 BUTTON
 105
@@ -405,7 +424,7 @@ PLOT
 567
 678
 808
-Blue Strategy Counts
+Cyan Strategy Counts
 time
 percentage
 0.0
@@ -416,10 +435,10 @@ true
 true
 "" ""
 PENS
-"CC" 1.0 0 -10899396 true "" "plotxy ticks count turtles with [shape = \"circle\" and color = blue] / count turtles with [ color = blue ] * 100"
-"CD" 1.0 0 -2674135 true "" "plotxy ticks count turtles with [shape = \"circle 2\" and color = blue] / count turtles with [ color = blue ] * 100"
-"DC" 1.0 0 -1184463 true "" "plotxy ticks count turtles with [shape = \"square\" and color = blue] / count turtles with [ color = blue ] * 100"
-"DD" 1.0 0 -16777216 true "" "plotxy ticks count turtles with [shape = \"square 2\" and color = blue] / count turtles with [ color = blue ] * 100"
+"CC" 1.0 0 -10899396 true "" "plotxy ticks count turtles with [is-cc? and first tag-string = 1] / count turtles with [ first tag-string = 1 ] * 100"
+"CD" 1.0 0 -2674135 true "" "plotxy ticks count turtles with [is-cd? and first tag-string = 1] / count turtles with [ first tag-string = 1 ] * 100"
+"DC" 1.0 0 -1184463 true "" "plotxy ticks count turtles with [is-dc? and first tag-string = 1] / count turtles with [ first tag-string = 1 ] * 100"
+"DD" 1.0 0 -16777216 true "" "plotxy ticks count turtles with [is-dd? and first tag-string = 1] / count turtles with [ first tag-string = 1 ] * 100"
 
 PLOT
 704
@@ -437,10 +456,10 @@ true
 true
 "" ""
 PENS
-"CC" 1.0 0 -10899396 true "" "plotxy ticks count turtles with [shape = \"circle\" and color = red] / count turtles with [ color = red ] * 100"
-"CD" 1.0 0 -2674135 true "" "plotxy ticks count turtles with [shape = \"circle 2\" and color = red] / count turtles with [ color = red ] * 100"
-"DC" 1.0 0 -1184463 true "" "plotxy ticks count turtles with [shape = \"square\" and color = red] / count turtles with [ color = red ] * 100"
-"DD" 1.0 0 -16777216 true "" "plotxy ticks count turtles with [shape = \"square 2\" and color = red] / count turtles with [ color = red ] * 100"
+"CC" 1.0 0 -10899396 true "" "plotxy ticks count turtles with [is-cc? and first tag-string = 0] / count turtles with [ first tag-string = 0 ] * 100"
+"CD" 1.0 0 -2674135 true "" "plotxy ticks count turtles with [is-cd? and first tag-string = 0] / count turtles with [ first tag-string = 0 ] * 100"
+"DC" 1.0 0 -1184463 true "" "plotxy ticks count turtles with [is-dc? and first tag-string = 0] / count turtles with [ first tag-string = 0 ] * 100"
+"DD" 1.0 0 -16777216 true "" "plotxy ticks count turtles with [is-dd? and first tag-string = 0] / count turtles with [ first tag-string = 0 ] * 100"
 
 PLOT
 832
