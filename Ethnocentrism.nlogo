@@ -109,7 +109,7 @@ end
 ;; the main routine
 to go
   clear-stats     ;; clear the turn based stats
-
+  if not any? turtles [ stop ]
   ;; reset the probability to reproduce
   ask turtles [ set ptr initial-ptr ]
 
