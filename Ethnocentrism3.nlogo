@@ -1,5 +1,7 @@
 ;; agents have a probablity to reproduce and a strategy
-turtles-own [ ptr cooperate-with-same? cooperate-with-different? ]
+turtles-own [ ptr cooperate-with-same? cooperate-with-different? different-threshold ]
+
+globals [ tests-passed? ]
 
 ;; creates a world with exactly one agent on the corner patch
 to setup
@@ -122,15 +124,72 @@ to update-shape
   ]
 end
 
+to-report hamming-distance [ list-1 list-2 ]
+  report sum (map [ [x y] -> ifelse-value x = y [0][1] ] list-1 list-2)
+end
+
+;; Testing code
+
+to expect [ command expected-result ]
+  let actual-result runresult command
+  if actual-result != expected-result [
+    print (word "Warning: Command '" command "' expected result '" expected-result "' but actually returned result '" actual-result "'.")
+    set tests-passed? false
+  ]
+end
+
+to test-hamming-distance
+  expect "hamming-distance [1] [0]" 1
+  expect "hamming-distance [0] [0]" 0
+  expect "hamming-distance [1] [1]" 0
+  expect "hamming-distance [0] [1]" 1
+  expect "hamming-distance [1 0] [0 1]" 2
+  expect "hamming-distance [0 1] [1 0]" 2
+  expect "hamming-distance [1 1] [0 1]" 1
+  expect "hamming-distance [1 1] [0 0]" 2
+  expect "hamming-distance [1 1] [1 1]" 0
+  expect "hamming-distance [1 0] [0 1]" 2
+  expect "hamming-distance [0 0 0 0] [0 0 0 0]" 0
+  expect "hamming-distance [0 0 0 0] [0 0 0 1]" 1
+  expect "hamming-distance [0 0 0 0] [0 0 1 0]" 1
+  expect "hamming-distance [0 0 0 0] [0 0 1 1]" 2
+  expect "hamming-distance [1 0 0 0] [0 0 1 1]" 3
+end
+
+to test-tests
+  let old-tests-passed? tests-passed?
+  set tests-passed? true
+  print "An expected warning should be printed below."
+  expect "1 + 1" 1
+  ifelse tests-passed? [
+    print "Warning: Command 'expect \"1 + 1\" 1' should have failed, but it passed."
+  ]
+  [ set tests-passed? true ]
+  expect "1 + 1" 2
+  ifelse tests-passed?
+  [ set tests-passed? old-tests-passed? ]
+  [
+    print "Warning: Command 'expect \"1 + 1\" 2 should have passed, but it failed."
+  ]
+end
+
+to run-tests
+  set tests-passed? true
+  test-tests
+  test-hamming-distance
+  ifelse tests-passed?
+  [ print "All tests passed." ]
+  [ print "Some tests failed." ]
+end
 @#$#@#$#@
 GRAPHICS-WINDOW
 323
 10
-790
-478
+826
+514
 -1
 -1
-9.0
+9.71
 1
 10
 1
@@ -140,10 +199,10 @@ GRAPHICS-WINDOW
 1
 1
 1
-0
-50
-0
-50
+-25
+25
+-25
+25
 1
 1
 1
@@ -400,6 +459,38 @@ false
 "" ""
 PENS
 "default" 1.0 0 -16777216 true "" "plotxy ticks count turtles"
+
+SLIDER
+5
+219
+170
+252
+num-tags
+num-tags
+0
+20
+1.0
+1
+1
+NIL
+HORIZONTAL
+
+BUTTON
+927
+414
+1009
+447
+NIL
+run-tests
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
 
 @#$#@#$#@
 ## WHAT IS IT?
