@@ -109,7 +109,6 @@ end
 ;; the main routine
 to go
   clear-stats     ;; clear the turn based stats
-  immigrate       ;; new agents immigrate into the world
 
   ;; reset the probability to reproduce
   ask turtles [ set ptr initial-ptr ]
@@ -121,14 +120,6 @@ to go
   death           ;; kill some of the agents
   update-stats    ;; update the states for the aggregate and last 100 ticks
   tick
-end
-
-;; random individuals enter the world on empty cells
-to immigrate
-  let empty-patches patches with [not any? turtles-here]
-  ;; we can't have more immigrants than there are empty patches
-  let how-many min list immigrants-per-day (count empty-patches)
-  ask n-of how-many empty-patches [ create-turtle ]
 end
 
 to interact  ;; turtle procedure
@@ -383,21 +374,6 @@ death-rate
 1.0
 0.1
 0.05
-1
-NIL
-HORIZONTAL
-
-SLIDER
-5
-218
-171
-251
-immigrants-per-day
-immigrants-per-day
-0.0
-100.0
-0.0
-1.0
 1
 NIL
 HORIZONTAL
@@ -1045,7 +1021,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.0.2
+NetLogo 6.1.1
 @#$#@#$#@
 setup-full repeat 150 [ go ]
 @#$#@#$#@
