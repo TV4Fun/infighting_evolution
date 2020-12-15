@@ -1468,6 +1468,57 @@ setup-full repeat 150 [ go ]
       <value value="50"/>
     </enumeratedValueSet>
   </experiment>
+  <experiment name="functional change test" repetitions="1" runMetricsEveryStep="true">
+    <setup>setup-single</setup>
+    <go>go</go>
+    <timeLimit steps="200"/>
+    <metric>count turtles</metric>
+    <metric>count turtles with [shape = "circle"]</metric>
+    <metric>count turtles with [shape = "circle 2"]</metric>
+    <metric>count turtles with [shape = "square"]</metric>
+    <metric>count turtles with [shape = "square 2"]</metric>
+    <metric>count turtles with [color = red]</metric>
+    <metric>count turtles with [color = blue]</metric>
+    <enumeratedValueSet variable="immigrant-chance-cooperate-with-different">
+      <value value="0"/>
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="immigrant-chance-cooperate-with-same">
+      <value value="0"/>
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="gain-of-receiving">
+      <value value="0.01"/>
+      <value value="0.03"/>
+      <value value="0.05"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="cost-of-giving">
+      <value value="0.01"/>
+      <value value="0.02"/>
+      <value value="0.03"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-PTR">
+      <value value="0.1"/>
+      <value value="0.12"/>
+      <value value="0.14"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="mutation-rate">
+      <value value="0"/>
+      <value value="0.005"/>
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="death-rate">
+      <value value="0"/>
+      <value value="0.1"/>
+      <value value="0.12"/>
+      <value value="0.15"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="random-seed">
+      <value value="1"/>
+      <value value="2"/>
+      <value value="3"/>
+    </enumeratedValueSet>
+  </experiment>
 </experiments>
 @#$#@#$#@
 @#$#@#$#@
