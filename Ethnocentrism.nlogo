@@ -1,86 +1,18 @@
 ;; agents have a probablity to reproduce and a strategy
 turtles-own [ ptr cooperate-with-same? cooperate-with-different? ]
 
-globals [
-  ;; the remaining variables support the replication of published experiments
-  meet                  ;; how many interactions occurred this turn
-  meet-agg              ;; how many interactions occurred through the run
-  last100meet           ;; meet for the last 100 ticks
-  meetown               ;; what number of individuals met someone of their own color this turn
-  meetown-agg           ;; what number of individuals met someone of their own color throughout the run
-  last100meetown        ;; meetown for the last 100 ticks
-  meetother             ;; what number of individuals met someone of a different color this turn
-  meetother-agg         ;; what number of individuals met someone of a different color throughout the run
-  last100meetother      ;; meetother for the last 100 ticks
-  coopown               ;; how many interactions this turn were cooperating with the same color
-  coopown-agg           ;; how many interactions throughout the run were cooperating with the same color
-  last100coopown        ;; coopown for the last 100 ticks
-  coopother             ;; how many interactions this turn were cooperating with a different color
-  coopother-agg         ;; how many interactions throughout the run were cooperating with a different color
-  defother              ;; how many interactions this turn were defecting with a different color
-  defother-agg          ;; how many interactions throughout the run were defecting with a different color
-  last100defother       ;; defother for the last 100 ticks
-  last100cc             ;; how many cooperate-cooperate genotypes have there been in the last 100 ticks
-  last100cd             ;; how many cooperate-defect genotypes have there been in the last 100 ticks
-  last100dc             ;; how many defect-cooperate genotypes have there been in the last 100 ticks
-  last100dd             ;; how many defect-defect genotypes have there been in the last 100 ticks
-  last100consist-ethno  ;; how many interactions consistent with ethnocentrism in the last 100 ticks
-  last100coop           ;; how many interactions have been cooperation in the last 100 ticks
-]
-
-to setup-empty
-  clear-all
-  initialize-variables
-  reset-ticks
-end
-
-;; creates a world with an agent on each patch
-to setup-full
-  clear-all
-  initialize-variables
-  ask patches [ create-turtle ]
-  reset-ticks
-end
-
 ;; creates a world with exactly one agent on the corner patch
-to setup-single
+to setup
   clear-all
-  initialize-variables
   ask patch 0 0 [ create-turtle ]
   reset-ticks
 end
 
-to initialize-variables
-  ;; initialize all the variables
-  set meetown 0
-  set meetown-agg 0
-  set meet 0
-  set meet-agg 0
-  set coopown 0
-  set coopown-agg 0
-  set defother 0
-  set defother-agg 0
-  set meetother 0
-  set meetother-agg 0
-  set coopother 0
-  set coopother-agg 0
-  set last100dd []
-  set last100cd []
-  set last100cc []
-  set last100dc []
-  set last100coopown []
-  set last100defother []
-  set last100consist-ethno []
-  set last100meetown []
-  set last100meetother []
-  set last100meet []
-  set last100coop []
-end
 
 ;; creates a new agent in the world
 to create-turtle  ;; patch procedure
   sprout 1 [
-    ; set color random-color
+    ; set initial color to red
     set color red
     ;; determine the strategy for interacting with someone of the same color
     set cooperate-with-same? (random-float 1.0 < immigrant-chance-cooperate-with-same)
@@ -96,29 +28,17 @@ to-report random-color
   report one-of [red blue]
 end
 
-;; this is used to clear stats that change between each tick
-to clear-stats
-  set meetown 0
-  set meet 0
-  set coopown 0
-  set defother 0
-  set meetother 0
-  set coopother 0
-end
-
 ;; the main routine
 to go
-  clear-stats     ;; clear the turn based stats
+  ;; Stop the simulation if turtles are extinct.
   if not any? turtles [ stop ]
   ;; reset the probability to reproduce
   ask turtles [ set ptr initial-ptr ]
-
   ;; have all of the agents interact with other agents if they can
   ask turtles [ interact ]
   ;; now they reproduce
   ask turtles [ reproduce ]
   death           ;; kill some of the agents
-  update-stats    ;; update the states for the aggregate and last 100 ticks
   tick
 end
 
@@ -129,39 +49,17 @@ to interact  ;; turtle procedure
     ;; the commands inside the ASK are written from the point of view
     ;; of the agent being interacted with.  To refer back to the agent
     ;; that initiated the interaction, we use the MYSELF primitive.
-    set meet meet + 1
-    set meet-agg meet-agg + 1
-    ;; do one thing if the individual interacting is the same color as me
-    if color = [color] of myself [
-      ;; record the fact the agent met someone of the own color
-      set meetown meetown + 1
-      set meetown-agg meetown-agg + 1
-      ;; if I cooperate then I reduce my PTR and increase my neighbors
-      if [cooperate-with-same?] of myself [
-        set coopown coopown + 1
-        set coopown-agg coopown-agg + 1
-        ask myself [ set ptr ptr - cost-of-giving ]
-        set ptr ptr + gain-of-receiving
-      ]
-    ]
-    ;; if we are different colors we take a different strategy
-    if color != [color] of myself [
-      ;; record stats on encounters
-      set meetother meetother + 1
-      set meetother-agg meetother-agg + 1
-      ;; if we cooperate with different colors then reduce our PTR and increase our neighbors
-      ifelse [cooperate-with-different?] of myself [
-        set coopother coopother + 1
-        set coopother-agg coopother-agg + 1
-        ask myself [ set ptr ptr - cost-of-giving ]
-        set ptr ptr + gain-of-receiving
-      ]
-      [
-        set defother defother + 1
-        set defother-agg defother-agg + 1
-      ]
+    ;; cooperate or not based on color and strategy
+    if (color = [color] of myself and [cooperate-with-same?] of myself) or (color != [color] of myself and [cooperate-with-different?] of myself) [
+      receive-help
     ]
   ]
+end
+
+to receive-help
+  ;; Increase my PTR and reduce it for the one giving me help
+  ask myself [ set ptr ptr - cost-of-giving ]
+  set ptr ptr + gain-of-receiving
 end
 
 ;; use PTR to determine if the agent gets to reproduce
@@ -224,102 +122,6 @@ to update-shape
   ]
 end
 
-;; this routine calculates a moving average of some stats over the last 100 ticks
-to update-stats
-  set last100dd        shorten lput (count turtles with [shape = "square 2"]) last100dd
-  set last100cc        shorten lput (count turtles with [shape = "circle"]) last100cc
-  set last100cd        shorten lput (count turtles with [shape = "circle 2"]) last100cd
-  set last100dc        shorten lput (count turtles with [shape = "square"]) last100dc
-  set last100coopown   shorten lput coopown last100coopown
-  set last100defother  shorten lput defother last100defother
-  set last100meetown   shorten lput meetown last100meetown
-  set last100coop      shorten lput (coopown + coopother) last100coop
-  set last100meet      shorten lput meet last100meet
-  set last100meetother shorten lput meetother last100meetother
-end
-
-;; this is used to keep all of the last100 lists the right length
-to-report shorten [the-list]
-  ifelse length the-list > 100
-    [ report butfirst the-list ]
-    [ report the-list ]
-end
-
-;; these are used in the BehaviorSpace experiments
-
-to-report meetown-percent
-  report meetown / max list 1 meet
-end
-to-report meetown-agg-percent
-  report meetown-agg / max list 1 meet-agg
-end
-to-report coopown-percent
-  report coopown / max list 1 meetown
-end
-to-report coopown-agg-percent
-  report coopown-agg / max list 1 meetown-agg
-end
-to-report defother-percent
-  report defother / max list 1 meetother
-end
-to-report defother-agg-percent
-  report defother-agg / max list 1 meetother-agg
-end
-to-report consist-ethno-percent
-  report (defother + coopown) / (max list 1 meet )
-end
-to-report consist-ethno-agg-percent
-  report (defother-agg + coopown-agg) / (max list 1 meet-agg )
-end
-to-report coop-percent
-  report (coopown + coopother) / (max list 1 meet )
-end
-to-report coop-agg-percent
-  report (coopown-agg + coopother-agg) / (max list 1 meet-agg)
-end
-to-report cc-count
-  report sum last100cc / max list 1 length last100cc
-end
-to-report cd-count
-  report sum last100cd / max list 1 length last100cd
-end
-to-report dc-count
-  report sum last100dc / max list 1 length last100dc
-end
-to-report dd-count
-  report sum last100dd / max list 1 length last100dd
-end
-to-report cc-percent
-  report cc-count / (max list 1 (cc-count + cd-count + dc-count + dd-count))
-end
-to-report cd-percent
-  report cd-count / (max list 1 (cc-count + cd-count + dc-count + dd-count))
-end
-to-report dc-percent
-  report dc-count / (max list 1 (cc-count + cd-count + dc-count + dd-count))
-end
-to-report dd-percent
-  report dd-count / (max list 1 (cc-count + cd-count + dc-count + dd-count))
-end
-to-report last100coopown-percent
-  report sum last100coopown / max list 1 sum last100meetown
-end
-to-report last100defother-percent
-  report sum last100defother / max list 1 sum last100meetother
-end
-to-report last100consist-ethno-percent
-  report (sum last100defother + sum last100coopown) / max list 1 sum last100meet
-end
-to-report last100meetown-percent
-  report sum last100meetown / max list 1 sum last100meet
-end
-to-report last100coop-percent
-  report sum last100coop / max list 1 sum last100meet
-end
-
-
-; Copyright 2003 Uri Wilensky.
-; See Info tab for full copyright and license.
 @#$#@#$#@
 GRAPHICS-WINDOW
 323
@@ -424,23 +226,6 @@ NIL
 HORIZONTAL
 
 BUTTON
-20
-29
-128
-62
-setup empty
-setup-empty
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-BUTTON
 222
 29
 295
@@ -477,23 +262,6 @@ PENS
 "CD" 1.0 0 -2674135 true "" "plotxy ticks count turtles with [shape = \"circle 2\"]"
 "DC" 1.0 0 -4079321 true "" "plotxy ticks count turtles with [shape = \"square\"]"
 "DD" 1.0 0 -16777216 true "" "plotxy ticks count turtles with [shape = \"square 2\"]"
-
-BUTTON
-130
-29
-219
-62
-setup full
-setup-full
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
 
 SLIDER
 5
@@ -557,12 +325,12 @@ PENS
 "pen-3" 1.0 0 -13345367 true "" "plotxy ticks count turtles with [color = blue]"
 
 BUTTON
-380
-508
-478
-541
+105
+28
+203
+61
 NIL
-setup-single
+setup
 NIL
 1
 T
@@ -1027,449 +795,8 @@ setup-full repeat 150 [ go ]
 @#$#@#$#@
 @#$#@#$#@
 <experiments>
-  <experiment name="Experiment 104" repetitions="10" runMetricsEveryStep="false">
-    <setup>setup-empty</setup>
-    <go>go</go>
-    <timeLimit steps="2000"/>
-    <metric>coopown-percent</metric>
-    <metric>defother-percent</metric>
-    <metric>consist-ethno-percent</metric>
-    <metric>meetown-percent</metric>
-    <metric>coop-percent</metric>
-    <metric>last100coopown-percent</metric>
-    <metric>last100defother-percent</metric>
-    <metric>last100consist-ethno-percent</metric>
-    <metric>last100meetown-percent</metric>
-    <metric>last100coop-percent</metric>
-    <metric>cc-percent</metric>
-    <metric>cd-percent</metric>
-    <metric>dc-percent</metric>
-    <metric>dd-percent</metric>
-    <enumeratedValueSet variable="gain-of-receiving">
-      <value value="0.03"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="initial-ptr">
-      <value value="0.12"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="immigrants-per-day">
-      <value value="1"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="immigrant-chance-cooperate-with-same">
-      <value value="0.5"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="mutation-rate">
-      <value value="0.005"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="cost-of-giving">
-      <value value="0.01"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="immigrant-chance-cooperate-with-different">
-      <value value="0.5"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="death-rate">
-      <value value="0.1"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="max-pxcor">
-      <value value="50"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="max-pycor">
-      <value value="50"/>
-    </enumeratedValueSet>
-  </experiment>
-  <experiment name="Experiment 105" repetitions="10" runMetricsEveryStep="false">
-    <setup>setup-empty</setup>
-    <go>go</go>
-    <timeLimit steps="2000"/>
-    <metric>coopown-percent</metric>
-    <metric>defother-percent</metric>
-    <metric>consist-ethno-percent</metric>
-    <metric>meetown-percent</metric>
-    <metric>coop-percent</metric>
-    <metric>last100coopown-percent</metric>
-    <metric>last100defother-percent</metric>
-    <metric>last100consist-ethno-percent</metric>
-    <metric>last100meetown-percent</metric>
-    <metric>last100coop-percent</metric>
-    <metric>cc-percent</metric>
-    <metric>cd-percent</metric>
-    <metric>dc-percent</metric>
-    <metric>dd-percent</metric>
-    <enumeratedValueSet variable="gain-of-receiving">
-      <value value="0.03"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="initial-ptr">
-      <value value="0.12"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="immigrants-per-day">
-      <value value="1"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="immigrant-chance-cooperate-with-same">
-      <value value="0.5"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="mutation-rate">
-      <value value="0.005"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="cost-of-giving">
-      <value value="0.01"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="immigrant-chance-cooperate-with-different">
-      <value value="0.5"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="death-rate">
-      <value value="0.1"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="max-pxcor">
-      <value value="100"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="max-pycor">
-      <value value="100"/>
-    </enumeratedValueSet>
-  </experiment>
-  <experiment name="Experiment 106" repetitions="10" runMetricsEveryStep="false">
-    <setup>setup-empty</setup>
-    <go>go</go>
-    <timeLimit steps="4000"/>
-    <metric>coopown-percent</metric>
-    <metric>defother-percent</metric>
-    <metric>consist-ethno-percent</metric>
-    <metric>meetown-percent</metric>
-    <metric>coop-percent</metric>
-    <metric>last100coopown-percent</metric>
-    <metric>last100defother-percent</metric>
-    <metric>last100consist-ethno-percent</metric>
-    <metric>last100meetown-percent</metric>
-    <metric>last100coop-percent</metric>
-    <metric>cc-percent</metric>
-    <metric>cd-percent</metric>
-    <metric>dc-percent</metric>
-    <metric>dd-percent</metric>
-    <enumeratedValueSet variable="gain-of-receiving">
-      <value value="0.03"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="initial-ptr">
-      <value value="0.12"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="immigrants-per-day">
-      <value value="1"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="immigrant-chance-cooperate-with-same">
-      <value value="0.5"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="mutation-rate">
-      <value value="0.005"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="cost-of-giving">
-      <value value="0.01"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="immigrant-chance-cooperate-with-different">
-      <value value="0.5"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="death-rate">
-      <value value="0.1"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="max-pxcor">
-      <value value="50"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="max-pycor">
-      <value value="50"/>
-    </enumeratedValueSet>
-  </experiment>
-  <experiment name="Experiment 107" repetitions="10" runMetricsEveryStep="false">
-    <setup>setup-empty</setup>
-    <go>go</go>
-    <timeLimit steps="1000"/>
-    <metric>coopown-percent</metric>
-    <metric>defother-percent</metric>
-    <metric>consist-ethno-percent</metric>
-    <metric>meetown-percent</metric>
-    <metric>coop-percent</metric>
-    <metric>last100coopown-percent</metric>
-    <metric>last100defother-percent</metric>
-    <metric>last100consist-ethno-percent</metric>
-    <metric>last100meetown-percent</metric>
-    <metric>last100coop-percent</metric>
-    <metric>cc-percent</metric>
-    <metric>cd-percent</metric>
-    <metric>dc-percent</metric>
-    <metric>dd-percent</metric>
-    <enumeratedValueSet variable="gain-of-receiving">
-      <value value="0.03"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="initial-ptr">
-      <value value="0.12"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="immigrants-per-day">
-      <value value="1"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="immigrant-chance-cooperate-with-same">
-      <value value="0.5"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="mutation-rate">
-      <value value="0.005"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="cost-of-giving">
-      <value value="0.01"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="immigrant-chance-cooperate-with-different">
-      <value value="0.5"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="death-rate">
-      <value value="0.1"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="max-pxcor">
-      <value value="50"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="max-pycor">
-      <value value="50"/>
-    </enumeratedValueSet>
-  </experiment>
-  <experiment name="Experiment 108" repetitions="10" runMetricsEveryStep="false">
-    <setup>setup-empty</setup>
-    <go>go</go>
-    <timeLimit steps="2000"/>
-    <metric>coopown-percent</metric>
-    <metric>defother-percent</metric>
-    <metric>consist-ethno-percent</metric>
-    <metric>meetown-percent</metric>
-    <metric>coop-percent</metric>
-    <metric>last100coopown-percent</metric>
-    <metric>last100defother-percent</metric>
-    <metric>last100consist-ethno-percent</metric>
-    <metric>last100meetown-percent</metric>
-    <metric>last100coop-percent</metric>
-    <metric>cc-percent</metric>
-    <metric>cd-percent</metric>
-    <metric>dc-percent</metric>
-    <metric>dd-percent</metric>
-    <enumeratedValueSet variable="gain-of-receiving">
-      <value value="0.03"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="initial-ptr">
-      <value value="0.12"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="immigrants-per-day">
-      <value value="1"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="immigrant-chance-cooperate-with-same">
-      <value value="0.5"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="mutation-rate">
-      <value value="0.005"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="cost-of-giving">
-      <value value="0.01"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="immigrant-chance-cooperate-with-different">
-      <value value="0.5"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="death-rate">
-      <value value="0.1"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="max-pxcor">
-      <value value="25"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="max-pycor">
-      <value value="25"/>
-    </enumeratedValueSet>
-  </experiment>
-  <experiment name="Experiment 109" repetitions="10" runMetricsEveryStep="false">
-    <setup>setup-empty</setup>
-    <go>go</go>
-    <timeLimit steps="2000"/>
-    <metric>coopown-percent</metric>
-    <metric>defother-percent</metric>
-    <metric>consist-ethno-percent</metric>
-    <metric>meetown-percent</metric>
-    <metric>coop-percent</metric>
-    <metric>last100coopown-percent</metric>
-    <metric>last100defother-percent</metric>
-    <metric>last100consist-ethno-percent</metric>
-    <metric>last100meetown-percent</metric>
-    <metric>last100coop-percent</metric>
-    <metric>cc-percent</metric>
-    <metric>cd-percent</metric>
-    <metric>dc-percent</metric>
-    <metric>dd-percent</metric>
-    <enumeratedValueSet variable="gain-of-receiving">
-      <value value="0.03"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="initial-ptr">
-      <value value="0.12"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="immigrants-per-day">
-      <value value="1"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="immigrant-chance-cooperate-with-same">
-      <value value="0.5"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="mutation-rate">
-      <value value="0.005"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="cost-of-giving">
-      <value value="0.02"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="immigrant-chance-cooperate-with-different">
-      <value value="0.5"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="death-rate">
-      <value value="0.1"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="max-pxcor">
-      <value value="50"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="max-pycor">
-      <value value="50"/>
-    </enumeratedValueSet>
-  </experiment>
-  <experiment name="Experiment 110" repetitions="10" runMetricsEveryStep="false">
-    <setup>setup-empty</setup>
-    <go>go</go>
-    <timeLimit steps="2000"/>
-    <metric>coopown-percent</metric>
-    <metric>defother-percent</metric>
-    <metric>consist-ethno-percent</metric>
-    <metric>meetown-percent</metric>
-    <metric>coop-percent</metric>
-    <metric>last100coopown-percent</metric>
-    <metric>last100defother-percent</metric>
-    <metric>last100consist-ethno-percent</metric>
-    <metric>last100meetown-percent</metric>
-    <metric>last100coop-percent</metric>
-    <metric>cc-percent</metric>
-    <metric>cd-percent</metric>
-    <metric>dc-percent</metric>
-    <metric>dd-percent</metric>
-    <enumeratedValueSet variable="gain-of-receiving">
-      <value value="0.03"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="initial-ptr">
-      <value value="0.12"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="immigrants-per-day">
-      <value value="1"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="immigrant-chance-cooperate-with-same">
-      <value value="0.5"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="mutation-rate">
-      <value value="0.0025"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="cost-of-giving">
-      <value value="0.01"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="immigrant-chance-cooperate-with-different">
-      <value value="0.5"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="death-rate">
-      <value value="0.1"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="max-pxcor">
-      <value value="50"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="max-pycor">
-      <value value="50"/>
-    </enumeratedValueSet>
-  </experiment>
-  <experiment name="Experiment 111" repetitions="10" runMetricsEveryStep="false">
-    <setup>setup-empty</setup>
-    <go>go</go>
-    <timeLimit steps="2000"/>
-    <metric>coopown-percent</metric>
-    <metric>defother-percent</metric>
-    <metric>consist-ethno-percent</metric>
-    <metric>meetown-percent</metric>
-    <metric>coop-percent</metric>
-    <metric>last100coopown-percent</metric>
-    <metric>last100defother-percent</metric>
-    <metric>last100consist-ethno-percent</metric>
-    <metric>last100meetown-percent</metric>
-    <metric>last100coop-percent</metric>
-    <metric>cc-percent</metric>
-    <metric>cd-percent</metric>
-    <metric>dc-percent</metric>
-    <metric>dd-percent</metric>
-    <enumeratedValueSet variable="gain-of-receiving">
-      <value value="0.03"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="initial-ptr">
-      <value value="0.12"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="immigrants-per-day">
-      <value value="1"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="immigrant-chance-cooperate-with-same">
-      <value value="0.5"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="mutation-rate">
-      <value value="0.01"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="cost-of-giving">
-      <value value="0.01"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="immigrant-chance-cooperate-with-different">
-      <value value="0.5"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="death-rate">
-      <value value="0.1"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="max-pxcor">
-      <value value="50"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="max-pycor">
-      <value value="50"/>
-    </enumeratedValueSet>
-  </experiment>
-  <experiment name="Experiment 113" repetitions="10" runMetricsEveryStep="false">
-    <setup>setup-empty</setup>
-    <go>go</go>
-    <timeLimit steps="2000"/>
-    <metric>coopown-percent</metric>
-    <metric>defother-percent</metric>
-    <metric>consist-ethno-percent</metric>
-    <metric>meetown-percent</metric>
-    <metric>coop-percent</metric>
-    <metric>last100coopown-percent</metric>
-    <metric>last100defother-percent</metric>
-    <metric>last100consist-ethno-percent</metric>
-    <metric>last100meetown-percent</metric>
-    <metric>last100coop-percent</metric>
-    <metric>cc-percent</metric>
-    <metric>cd-percent</metric>
-    <metric>dc-percent</metric>
-    <metric>dd-percent</metric>
-    <enumeratedValueSet variable="gain-of-receiving">
-      <value value="0.03"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="initial-ptr">
-      <value value="0.12"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="immigrants-per-day">
-      <value value="2"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="immigrant-chance-cooperate-with-same">
-      <value value="0.5"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="mutation-rate">
-      <value value="0.005"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="cost-of-giving">
-      <value value="0.01"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="immigrant-chance-cooperate-with-different">
-      <value value="0.5"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="death-rate">
-      <value value="0.1"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="max-pxcor">
-      <value value="50"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="max-pycor">
-      <value value="50"/>
-    </enumeratedValueSet>
-  </experiment>
   <experiment name="functional change test" repetitions="1" runMetricsEveryStep="true">
-    <setup>setup-single</setup>
+    <setup>setup</setup>
     <go>go</go>
     <timeLimit steps="200"/>
     <metric>count turtles</metric>
