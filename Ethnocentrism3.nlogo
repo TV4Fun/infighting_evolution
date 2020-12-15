@@ -49,9 +49,9 @@ to interact  ;; turtle procedure
     ;; the commands inside the ASK are written from the point of view
     ;; of the agent being interacted with.  To refer back to the agent
     ;; that initiated the interaction, we use the MYSELF primitive.
-    let different? hamming-distance tag-string [tag-string] of myself >= [different-threshold] of myself
     ;; cooperate or not based on color and strategy
-    if (not different? and not [is-cosmopolitan?] of myself) or (different? and [is-cosmopolitan?] of myself) [
+    ;; TODO: Make this more readible (the two "myself"s in the following command refer to different objects)
+    if [should-cooperate? myself] of myself [
       receive-help
     ]
   ]
@@ -86,7 +86,7 @@ to mutate  ;; turtle procedure
   set tag-string map [ i -> ifelse-value random-float 1.0 < mutation-rate [1 - i][i] ] tag-string
   ;; mutate the strategy flags;
   ;; Use a smaller mutation probability for is-cosmopolitan
-  if random-float 1.0 < mutation-rate ^ 2 [ set is-cosmopolitan? not is-cosmopolitan? ]
+  if random-float 1.0 < mutation-rate [ set is-cosmopolitan? not is-cosmopolitan? ]
   ;; Mutate by at most 1. Bound in the range [0, num-tags + 1]
   if random-float 1.0 < mutation-rate [
     ifelse different-threshold = 0
@@ -126,6 +126,18 @@ to update-shape
   ;; if the agent doesn't cooperate with same they are a square
   if is-dc? [ set shape "square" ]  ;; filled in square (cosmopolitan)
   if is-dd? [ set shape "square 2" ]  ;; empty square (egoist)
+end
+
+;; Sub-functions run at turtle scope for strategy determination
+to-report is-different? [ other-turtle ]
+  ;; Check if other-turtle is "different" according to MY difference threshold.
+  report hamming-distance tag-string [tag-string] of other-turtle >= different-threshold
+end
+
+to-report should-cooperate? [ other-turtle ]
+  ;; Check if THIS turtle should cooperate with other-turtle based on THIS turtle's strategy.
+  let different? is-different? other-turtle
+  report (not different? and not is-cosmopolitan?) or (different? and is-cosmopolitan?)
 end
 
 to-report hamming-distance [ list-1 list-2 ]
@@ -269,7 +281,7 @@ initial-PTR
 initial-PTR
 0.0
 1.0
-0.17
+0.16
 0.01
 1
 NIL
