@@ -165,10 +165,11 @@ end
 
 to expect [ command expected-result ]
   let actual-result runresult command
-  if actual-result != expected-result [
+  ifelse actual-result != expected-result [
     print (word "Warning: Command '" command "' expected result '" expected-result "' but actually returned result '" actual-result "'.")
     set tests-passed? false
   ]
+  [ print (word "expect '" command "' '" expected-result "' passed.") ]
 end
 
 to test-hamming-distance
@@ -202,14 +203,141 @@ to test-tests
   ifelse tests-passed?
   [ set tests-passed? old-tests-passed? ]
   [
-    print "Warning: Command 'expect \"1 + 1\" 2 should have passed, but it failed."
+    print "Warning: Command 'expect \"1 + 1\" 2' should have passed, but it failed."
   ]
 end
 
+;; for testing, create a turtle with specific values
+to-report create-specific-turtle [ new-tag-string new-is-cosmopolitan? new-difference-threshold ]  ;; patch procedure
+  let new-turtle nobody
+  sprout 1 [
+    set tag-string new-tag-string
+    set is-cosmopolitan? new-is-cosmopolitan?
+    ;; Set difference threshold to a random value in the range [0, num-tags + 1]
+    set different-threshold new-difference-threshold
+    ;; Set the color of the agent based on tag string
+    update-color
+    ;; change the shape of the agent on the basis of the strategy
+    update-shape
+    set new-turtle self
+  ]
+  report new-turtle
+end
+
+to expect-cc [ new-difference-threshold new-is-cosmopolitan? ]
+  let new-turtle create-specific-turtle [0] new-is-cosmopolitan? new-difference-threshold
+  ask new-turtle [
+    expect "is-cc?" true
+    expect "is-cd?" false
+    expect "is-dc?" false
+    expect "is-dd?" false
+    expect "shape" "circle"
+    die
+  ]
+end
+
+to expect-cd [ new-difference-threshold new-is-cosmopolitan? ]
+  let new-turtle create-specific-turtle [0] new-is-cosmopolitan? new-difference-threshold
+  ask new-turtle [
+    expect "is-cc?" false
+    expect "is-cd?" true
+    expect "is-dc?" false
+    expect "is-dd?" false
+    expect "shape" "circle 2"
+    die
+  ]
+end
+
+to expect-dc [ new-difference-threshold new-is-cosmopolitan? ]
+  let new-turtle create-specific-turtle [0] new-is-cosmopolitan? new-difference-threshold
+  ask new-turtle [
+    expect "is-cc?" false
+    expect "is-cd?" false
+    expect "is-dc?" true
+    expect "is-dd?" false
+    expect "shape" "square"
+    die
+  ]
+end
+
+to expect-dd [ new-difference-threshold new-is-cosmopolitan? ]
+  let new-turtle create-specific-turtle [0] new-is-cosmopolitan? new-difference-threshold
+  ask new-turtle [
+    expect "is-cc?" false
+    expect "is-cd?" false
+    expect "is-dc?" false
+    expect "is-dd?" true
+    expect "shape" "square 2"
+    die
+  ]
+end
+
+to test-1-tag-strategies
+  ask patch 0 0 [
+    expect-cc 2 false
+    expect-cc 0 true
+    expect-cd 1 false
+    expect-dc 1 true
+    expect-dd 2 true
+    expect-dd 0 false
+  ]
+end
+
+to test-1-tag-differences
+  clear-turtles
+  crt 2 [
+    set tag-string [ 0 ]
+    set different-threshold 0
+  ]
+  ask turtle 0 [
+    expect "is-different? turtle 1" true
+    set different-threshold 1
+    expect "is-different? turtle 1" false
+    set different-threshold 2
+    expect "is-different? turtle 1" false
+  ]
+  ask turtle 1 [
+    set tag-string [ 1 ]
+  ]
+  ask turtle 0 [
+    set different-threshold 0
+    expect "is-different? turtle 1" true
+    set different-threshold 1
+    expect "is-different? turtle 1" true
+    set different-threshold 2
+    expect "is-different? turtle 1" false
+  ]
+  ask turtle 1 [
+    expect "is-different? turtle 0" true
+    set different-threshold 1
+    expect "is-different? turtle 0" true
+    set different-threshold 2
+    expect "is-different? turtle 0" false
+  ]
+  ask turtle 0 [
+    set tag-string [ 1 ]
+  ]
+  ask turtle 1 [
+    set different-threshold 0
+    expect "is-different? turtle 0" true
+    set different-threshold 1
+    expect "is-different? turtle 0" false
+    set different-threshold 2
+    expect "is-different? turtle 0" false
+  ]
+end
+
+to test-1-tag
+  test-1-tag-strategies
+  test-1-tag-differences
+end
+
 to run-tests
+  clear-all
   set tests-passed? true
   test-tests
   test-hamming-distance
+  test-1-tag
   ifelse tests-passed?
   [ print "All tests passed." ]
   [ print "Some tests failed." ]
