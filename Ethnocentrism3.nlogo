@@ -3,8 +3,6 @@ __includes["tests.nls"]
 ;; agents have a probablity to reproduce and a strategy
 turtles-own [ ptr is-cosmopolitan? different-threshold tag-string ]
 
-globals [ tests-passed? ]
-
 ;; creates a world with exactly one agent on the corner patch
 to setup
   clear-all
@@ -41,7 +39,7 @@ to go
   ask turtles [ interact ]
   ;; now they reproduce
   ask turtles [ reproduce ]
-  death           ;; kill some of the agents
+  ask turtles [ death ]          ;; kill some of the agents
   tick
 end
 
@@ -89,14 +87,11 @@ to mutate  ;; turtle procedure
   ;; mutate the strategy flags;
   ;; Use a smaller mutation probability for is-cosmopolitan
   if random-float 1.0 < mutation-rate [ set is-cosmopolitan? not is-cosmopolitan? ]
-  ;; Mutate by at most 1. Bound in the range [0, num-tags + 1]
+  ;; Mutate by at most 1. Bound in the range [0, num-tags + 1]. Make the edges half as likely to mutate to ensure an even probability distribution.
   if random-float 1.0 < mutation-rate [
-    ifelse different-threshold = 0
-    [ set different-threshold 1 ]
-    [ ifelse different-threshold = num-tags + 1 or random 2 = 0
-      [ set different-threshold different-threshold - 1 ]
-      [ set different-threshold different-threshold + 1 ]
-    ]
+    ifelse random 2 = 0
+    [ if different-threshold > 0 [ set different-threshold different-threshold - 1 ] ]
+    [ if different-threshold <= num-tags [ set different-threshold different-threshold + 1 ] ]
   ]
   ;; Update the color in case the tag string changed
   update-color
@@ -104,11 +99,9 @@ to mutate  ;; turtle procedure
   update-shape
 end
 
-to death
+to death  ;; turtle procedure
   ;; check to see if a random variable is less than the death rate for each agent
-  ask turtles [
-    if random-float 1.0 < death-rate [ die ]
-  ]
+  if random-float 1.0 < death-rate [ die ]
 end
 
 to update-color
