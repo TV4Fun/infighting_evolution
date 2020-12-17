@@ -128,7 +128,7 @@ to update-shape
   if is-dd? [ set shape "square 2" ]  ;; empty square (egoist)
 end
 
-;; Sub-functions run at turtle scope for strategy determination
+;; Sub-commandss run in the turtle context for strategy determination
 to-report is-different? [ other-turtle ]
   ;; Check if other-turtle is "different" according to MY difference threshold.
   report hamming-distance tag-string [tag-string] of other-turtle >= different-threshold
@@ -161,15 +161,15 @@ to-report is-dd?
   report (different-threshold = 2 and is-cosmopolitan?) or (different-threshold = 0 and not is-cosmopolitan?)
 end
 
-;; Testing code
+;; Testing code. All test-* commands should be run from the observer context. The run-tests command should run them all
 
 to expect [ command expected-result ]
   let actual-result runresult command
   ifelse actual-result != expected-result [
-    print (word "Warning: Command '" command "' expected result '" expected-result "' but actually returned result '" actual-result "'.")
+    show (word "Warning: Command '" command "' expected result '" expected-result "' but actually returned result '" actual-result "'.")
     set tests-passed? false
   ]
-  [ print (word "expect '" command "' '" expected-result "' passed.") ]
+  [ show (word "expect '" command "' '" expected-result "' passed.") ]
 end
 
 to test-hamming-distance
@@ -327,9 +327,81 @@ to test-1-tag-differences
   ]
 end
 
+to test-1-tag-cooperation
+  ;; Test should-coopearte? command. No need to test every possible permutation since we've already verified is-different? and strategy determination.
+  clear-turtles
+  crt 2 [
+    set tag-string [ 0 ]
+    set different-threshold 0
+    set is-cosmopolitan? false
+  ]
+  crt 1 [ set tag-string [ 1 ] ]
+  ask turtle 0 [
+    expect "is-dd?" true
+    expect "should-cooperate? turtle 1" false
+    expect "should-cooperate? turtle 2" false
+    set different-threshold 1
+    expect "is-cd?" true
+    expect "should-cooperate? turtle 1" true
+    expect "should-cooperate? turtle 2" false
+    set is-cosmopolitan? true
+    expect "is-dc?" true
+    expect "should-cooperate? turtle 1" false
+    expect "should-cooperate? turtle 2" true
+    set different-threshold 0
+    expect "is-cc?" true
+    expect "should-cooperate? turtle 1" true
+    expect "should-cooperate? turtle 2" true
+  ]
+end
+
+to test-1-tag-interaction
+  ;; Bring it all together for a small neighborhood interaction test
+  clear-turtles
+  set cost-of-giving 0.01
+  set gain-of-receiving 0.03
+  ask patch 0 0 [
+    sprout 1 [
+      set tag-string [ 0 ]
+      set different-threshold 1
+      set is-cosmopolitan? false
+      set ptr 0
+    ]
+  ]
+  ask patch 0 1 [
+    sprout 1 [
+      set tag-string [ 0 ]
+      set ptr 0
+    ]
+  ]
+  ask patch 0 -1 [
+    sprout 1 [
+      set tag-string [ 1 ]
+      set ptr 0
+    ]
+  ]
+  ask turtles-on patch 0 0 [
+    expect "is-cd?" true
+    interact
+    expect "ptr" -0.01
+    die
+  ]
+  ask turtles-on patch 0 1 [
+    expect "ptr" 0.03
+    die
+  ]
+  ask turtles-on patch 0 -1 [
+    expect "ptr" 0
+    die
+  ]
+end
+
 to test-1-tag
+  set num-tags 1
   test-1-tag-strategies
   test-1-tag-differences
+  test-1-tag-cooperation
+  test-1-tag-interaction
 end
 
 to run-tests
