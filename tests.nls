@@ -202,7 +202,7 @@ to test-1-tag-differences
 end
 
 to test-1-tag-cooperation
-  ;; Test should-coopearte? command. No need to test every possible permutation since we've already verified is-different? and strategy determination.
+  ;; Test should-cooperate? command. No need to test every possible permutation since we've already verified is-different? and strategy determination.
   clear-turtles
   crt 2 [
     set tag-string [ 0 ]
@@ -389,7 +389,7 @@ to test-many-4-tag-mutation
     repeat num-mutations [ mutate ]
   ]
   ;; All turtles should have difference thresholds in the range 0 through 5.
-  expect "all? turtles [ (position different-threshold range (num-tags + 2)) != false ]" true
+  expect "all? turtles [ member? different-threshold range (num-tags + 2) ]" true
   ;; Expect each possible combination of tag strings to occur with approximately equal probability. For a large number of single bit flips, the end result is approximately a Bernoulli trial with p = 0.5, so
   ;; expect the overall result to be a binomial distribution with p = 0.5, n = num-turtles.
   foreach all-tag-strings [ i -> expect-binomial word "turtles with tag-string " i count turtles with [tag-string = i] num-turtles 1 / 2 ^ num-tags ]
@@ -407,9 +407,46 @@ to test-mutate
   set mutation-rate old-mutation-rate
 end
 
+to test-reproduce-open
+  clear-turtles
+  ;; Create two stripes of turtles with a space between them, so everyone has a chance to reproduce
+  ask patches with [ pxcor = 0 or pxcor = 2] [
+    create-turtle
+  ]
+  ask turtles [ set ptr 0.5 ]
+  expect "count turtles" 2 * world-height
+  ask turtles [ reproduce ]
+  let new-turtles count turtles - 2 * world-height
+  expect-binomial "Reproducing turtles" new-turtles 2 * world-height 0.5
+end
+
+to test-reproduce-confined
+  clear-turtles
+  ;; Create five adjacent stripes of turtles with no space between them. Only the turtles on the edges will be able to reproduce.
+  ask patches with [ member? pxcor range 5 ] [
+    create-turtle
+  ]
+  ask turtles [ set ptr 0.5 ]
+  expect "count turtles" 5 * world-height
+  ask turtles [ reproduce ]
+  ;; Check that there is no overlap
+  expect "all? patches [ count turtles-here <= 1 ]" true
+  ;; Check that reproduction is only local
+  expect "all? patches with [ pxcor > 5 or pxcor < -1 ] [ count turtles-here = 0]" true
+  let new-turtles count turtles - 5 * world-height
+  expect-binomial "Reproducing turtles" new-turtles 2 * world-height 0.5
+end
+  
+
+to test-reproduce
+  test-reproduce-open
+  test-reproduce-confined
+end
+
 to test-probabilistic
   test-death
   test-mutate
+  test-reproduce
 end
 
 to run-tests
