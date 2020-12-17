@@ -207,8 +207,8 @@ death-rate
 death-rate
 0.0
 1.0
-0.1
-0.05
+0.07
+0.01
 1
 NIL
 HORIZONTAL
@@ -222,7 +222,7 @@ initial-PTR
 initial-PTR
 0.0
 1.0
-0.16
+0.13
 0.01
 1
 NIL
@@ -237,7 +237,7 @@ cost-of-giving
 cost-of-giving
 0.0
 1.0
-0.01
+0.02
 0.01
 1
 NIL
@@ -252,7 +252,7 @@ gain-of-receiving
 gain-of-receiving
 0.0
 1.0
-0.03
+0.04
 0.01
 1
 NIL
@@ -293,7 +293,7 @@ true
 PENS
 "CC" 1.0 0 -10899396 true "" "plotxy ticks count turtles with [is-cc?]"
 "CD" 1.0 0 -2674135 true "" "plotxy ticks count turtles with [is-cd?]"
-"DC" 1.0 0 -4079321 true "" "plotxy ticks count turtles with [is-dc?]"
+"DC" 1.0 0 -1184463 true "" "plotxy ticks count turtles with [is-dc?]"
 "DD" 1.0 0 -16777216 true "" "plotxy ticks count turtles with [is-dd?]"
 
 SLIDER

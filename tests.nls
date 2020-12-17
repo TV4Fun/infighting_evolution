@@ -229,12 +229,13 @@ to test-1-tag-cooperation
   ]
 end
 
-to test-1-tag-interaction
+;; TODO: Remove code repetition
+to test-1-tag-interaction-cd
   ;; Bring it all together for a small neighborhood interaction test
   clear-turtles
   let old-cost-of-giving cost-of-giving
-  set cost-of-giving 0.01
   let old-gain-of-receiving gain-of-receiving
+  set cost-of-giving 0.01
   set gain-of-receiving 0.03
   ;; Test interaction of central turtle with "CD" strategy
   ask patch 0 0 [
@@ -298,13 +299,223 @@ to test-1-tag-interaction
   set gain-of-receiving old-gain-of-receiving
 end
 
+to test-1-tag-interaction-dd
+  ;; Bring it all together for a small neighborhood interaction test
+  clear-turtles
+  let old-cost-of-giving cost-of-giving
+  let old-gain-of-receiving gain-of-receiving
+  set cost-of-giving 0.01
+  set gain-of-receiving 0.03
+  ;; Test interaction of central turtle with "DD" strategy
+  ask patch 0 0 [
+    sprout 1 [
+      set tag-string [ 0 ]
+      set different-threshold 0
+      set is-cosmopolitan? false
+      set ptr 0
+    ]
+  ]
+  ;; Both of these have the same tag so should be cooperated with.
+  ask patch 0 1 [
+    sprout 1 [
+      set tag-string [ 0 ]
+      set ptr 0
+    ]
+  ]
+  ask patch 1 0 [
+    sprout 1 [
+      set tag-string [ 0 ]
+      set ptr 0
+    ]
+  ]
+  ;; This has a different tag so should not be cooperated with.
+  ask patch 0 -1 [
+    sprout 1 [
+      set tag-string [ 1 ]
+      set ptr 0
+    ]
+  ]
+  ;; The one is outside the central turtle's neighborhood so should not be interacted with.
+  ask patch 0 2 [
+    sprout 1 [
+      set tag-string [ 0 ]
+      set ptr 0
+    ]
+  ]
+  ask turtles-on patch 0 0 [
+    expect "is-dd?" true
+    interact
+    expect "ptr" 0
+    die
+  ]
+  ask turtles-on patch 0 1 [
+    expect "ptr" 0
+    die
+  ]
+  ask turtles-on patch 1 0 [
+    expect "ptr" 0
+    die
+  ]
+  ask turtles-on patch 0 -1 [
+    expect "ptr" 0
+    die
+  ]
+  ask turtles-on patch 0 2 [
+    expect "ptr" 0
+    die
+  ]
+  set cost-of-giving old-cost-of-giving
+  set gain-of-receiving old-gain-of-receiving
+end
+
+to test-1-tag-interaction-cc
+  ;; Bring it all together for a small neighborhood interaction test
+  clear-turtles
+  let old-cost-of-giving cost-of-giving
+  let old-gain-of-receiving gain-of-receiving
+  set cost-of-giving 0.01
+  set gain-of-receiving 0.03
+  ;; Test interaction of central turtle with "CC" strategy
+  ask patch 0 0 [
+    sprout 1 [
+      set tag-string [ 0 ]
+      set different-threshold 2
+      set is-cosmopolitan? false
+      set ptr 0
+    ]
+  ]
+  ;; Both of these have the same tag so should be cooperated with.
+  ask patch 0 1 [
+    sprout 1 [
+      set tag-string [ 0 ]
+      set ptr 0
+    ]
+  ]
+  ask patch 1 0 [
+    sprout 1 [
+      set tag-string [ 0 ]
+      set ptr 0
+    ]
+  ]
+  ;; This has a different tag so should not be cooperated with.
+  ask patch 0 -1 [
+    sprout 1 [
+      set tag-string [ 1 ]
+      set ptr 0
+    ]
+  ]
+  ;; The one is outside the central turtle's neighborhood so should not be interacted with.
+  ask patch 0 2 [
+    sprout 1 [
+      set tag-string [ 0 ]
+      set ptr 0
+    ]
+  ]
+  ask turtles-on patch 0 0 [
+    expect "is-cc?" true
+    interact
+    expect "ptr" -0.03
+    die
+  ]
+  ask turtles-on patch 0 1 [
+    expect "ptr" 0.03
+    die
+  ]
+  ask turtles-on patch 1 0 [
+    expect "ptr" 0.03
+    die
+  ]
+  ask turtles-on patch 0 -1 [
+    expect "ptr" 0.03
+    die
+  ]
+  ask turtles-on patch 0 2 [
+    expect "ptr" 0
+    die
+  ]
+  set cost-of-giving old-cost-of-giving
+  set gain-of-receiving old-gain-of-receiving
+end
+
+to test-1-tag-interaction-dc
+  ;; Bring it all together for a small neighborhood interaction test
+  clear-turtles
+  let old-cost-of-giving cost-of-giving
+  let old-gain-of-receiving gain-of-receiving
+  set cost-of-giving 0.01
+  set gain-of-receiving 0.03
+  ;; Test interaction of central turtle with "eC" strategy
+  ask patch 0 0 [
+    sprout 1 [
+      set tag-string [ 0 ]
+      set different-threshold 1
+      set is-cosmopolitan? true
+      set ptr 0
+    ]
+  ]
+  ;; Both of these have the same tag so should not be cooperated with.
+  ask patch 0 1 [
+    sprout 1 [
+      set tag-string [ 0 ]
+      set ptr 0
+    ]
+  ]
+  ask patch 1 0 [
+    sprout 1 [
+      set tag-string [ 0 ]
+      set ptr 0
+    ]
+  ]
+  ;; This has a different tag so should be cooperated with.
+  ask patch 0 -1 [
+    sprout 1 [
+      set tag-string [ 1 ]
+      set ptr 0
+    ]
+  ]
+  ;; The one is outside the central turtle's neighborhood so should not be interacted with.
+  ask patch 0 2 [
+    sprout 1 [
+      set tag-string [ 0 ]
+      set ptr 0
+    ]
+  ]
+  ask turtles-on patch 0 0 [
+    expect "is-dc?" true
+    interact
+    expect "ptr" -0.01
+    die
+  ]
+  ask turtles-on patch 0 1 [
+    expect "ptr" 0
+    die
+  ]
+  ask turtles-on patch 1 0 [
+    expect "ptr" 0
+    die
+  ]
+  ask turtles-on patch 0 -1 [
+    expect "ptr" 0.03
+    die
+  ]
+  ask turtles-on patch 0 2 [
+    expect "ptr" 0
+    die
+  ]
+  set cost-of-giving old-cost-of-giving
+  set gain-of-receiving old-gain-of-receiving
+end
+
 to test-1-tag
   let old-num-tags num-tags
   set num-tags 1
   test-1-tag-strategies
   test-1-tag-differences
   test-1-tag-cooperation
-  test-1-tag-interaction
+  test-1-tag-interaction-cd
+  test-1-tag-interaction-dd
+  test-1-tag-interaction-cc
+  test-1-tag-interaction-dc
   set num-tags old-num-tags
 end
 
