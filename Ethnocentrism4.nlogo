@@ -215,7 +215,7 @@ mutation-rate
 mutation-rate
 0.0
 1.0
-0.005
+0.001
 0.0010
 1
 NIL
