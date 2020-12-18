@@ -1,8 +1,7 @@
-__includes["tests.nls"]
+__includes["tests2.nls"]
 
 ;; agents have a probablity to reproduce and a strategy
 turtles-own [ ptr is-cosmopolitan? different-threshold tag-string ]
-
 ;; creates a world with exactly one agent on the corner patch
 to setup
   clear-all
@@ -101,7 +100,10 @@ end
 
 to death  ;; turtle procedure
   ;; check to see if a random variable is less than the death rate for each agent
-  if random-float 1.0 < death-rate [ die ]
+  if random-float 1.0 < death-rate [
+    set pcolor black
+    die
+  ]
 end
 
 to update-color
@@ -109,18 +111,29 @@ to update-color
   [ set color red ]
   [
     let hue 180 * first tag-string
+    if num-tags > 1 [ set hue atan (first tag-string - 0.5) (last tag-string - 0.5) ]
     set color hsb hue 100 100
+    let brightness 0
+    ifelse is-cosmopolitan?
+    [ set brightness 100 * (1 - different-threshold / (num-tags + 1)) ]
+    [ set brightness 100 * different-threshold / (num-tags + 1) ]
+    set pcolor hsb hue 100 brightness
   ]
 end
 
 ;; make sure the shape matches the strategy
 to update-shape
+  ifelse is-cosmopolitan?
+  [ set shape "empty square" ] ;; Empty square, possibly filled with patch color
+  [ set shape "empty triangle" ] ;; Empty circle, possibly filled with patch color
+  __set-line-thickness 0.1
   ;; if the agent cooperates with same they are a circle
-  if is-cc? [ set shape "circle" ]  ;; filled in circle (altruist)
-  if is-cd? [ set shape "circle 2" ]  ;; filled in circle (altruist)
+  ;;if is-cc? [ set shape "circle" ]  ;; filled in circle (altruist)
+  ;;if is-cd? [ set shape "circle 2" ]  ;; empty circle (ethnocentrist)
   ;; if the agent doesn't cooperate with same they are a square
-  if is-dc? [ set shape "square" ]  ;; filled in square (cosmopolitan)
-  if is-dd? [ set shape "square 2" ]  ;; empty square (egoist)
+  ;;if is-dc? [ set shape "square" ]  ;; filled in square (cosmopolitan)
+  ;;if is-dd? [ set shape "square 2" ]  ;; empty square (egoist)
+
 end
 
 ;; Sub-commandss run in the turtle context for strategy determination
@@ -140,20 +153,28 @@ to-report hamming-distance [ list-1 list-2 ]
 end
 
 ;; convenience turtle reporters for the 1-tag case
-to-report is-cc?
-  report (different-threshold = 2 and not is-cosmopolitan?) or (different-threshold = 0 and is-cosmopolitan?)
+to-report is-c?
+  report (different-threshold = num-tags + 1 and not is-cosmopolitan?) or (different-threshold = 0 and is-cosmopolitan?)
 end
 
-to-report is-cd?
+to-report is-cdd?
   report different-threshold = 1 and not is-cosmopolitan?
 end
 
-to-report is-dc?
+to-report is-dcc?
   report different-threshold = 1 and is-cosmopolitan?
 end
 
-to-report is-dd?
-  report (different-threshold = 2 and is-cosmopolitan?) or (different-threshold = 0 and not is-cosmopolitan?)
+to-report is-d?
+  report (different-threshold = num-tags + 1 and is-cosmopolitan?) or (different-threshold = 0 and not is-cosmopolitan?)
+end
+
+to-report is-ccd?
+  report not is-cosmopolitan? and different-threshold = 2
+end
+
+to-report is-ddc?
+  report is-cosmopolitan? and different-threshold = 2
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -291,10 +312,12 @@ true
 true
 "" ""
 PENS
-"CC" 1.0 0 -10899396 true "" "plotxy ticks count turtles with [is-cc?]"
-"CD" 1.0 0 -2674135 true "" "plotxy ticks count turtles with [is-cd?]"
-"DC" 1.0 0 -1184463 true "" "plotxy ticks count turtles with [is-dc?]"
-"DD" 1.0 0 -16777216 true "" "plotxy ticks count turtles with [is-dd?]"
+"C" 1.0 0 -10899396 true "" "plotxy ticks count turtles with [is-c?]"
+"CDD" 1.0 0 -2674135 true "" "plotxy ticks count turtles with [is-cdd?]"
+"DCC" 1.0 0 -1184463 true "" "plotxy ticks count turtles with [is-dcc?]"
+"D" 1.0 0 -16777216 true "" "plotxy ticks count turtles with [is-d?]"
+"CCD" 1.0 0 -955883 true "" "plotxy ticks count turtles with [is-ccd?]"
+"DDC" 1.0 0 -11221820 true "" "plotxy ticks count turtles with [is-ddc?]"
 
 SLIDER
 5
@@ -326,22 +349,12 @@ immigrant-chance-cooperate-with-different
 NIL
 HORIZONTAL
 
-TEXTBOX
-9
-77
-304
-142
-Circles cooperate with same color\nSquares defect with same color\nFilled-in shapes cooperate with different color\nEmpty shapes defect with different color\n
-11
-0.0
-0
-
 PLOT
-9
-535
-323
-763
-Color Counts
+841
+365
+1184
+614
+Tag String Counts
 time
 count
 0.0
@@ -349,11 +362,13 @@ count
 0.0
 10.0
 true
-false
+true
 "" ""
 PENS
-"red" 1.0 0 -2674135 true "" "plotxy ticks count turtles with [first tag-string = 0]"
-"cyan" 1.0 0 -11221820 true "" "plotxy ticks count turtles with [first tag-string = 1]"
+"[0 1]" 1.0 0 -5825686 true "" "plotxy ticks count turtles with [ tag-string = [ 0 1 ] ]"
+"[1 0]" 1.0 0 -13840069 true "" "plotxy ticks count turtles with [ tag-string = [ 1 0 ] ]"
+"[1 1]" 1.0 0 -955883 true "" "plotxy ticks count turtles with [ tag-string = [ 1 1 ] ]"
+"[0 0]" 1.0 0 -13345367 true "" "plotxy ticks count turtles with [ tag-string = [ 0 0 ] ]"
 
 BUTTON
 105
@@ -371,48 +386,6 @@ NIL
 NIL
 NIL
 1
-
-PLOT
-362
-567
-678
-808
-Cyan Strategy Counts
-time
-percentage
-0.0
-10.0
-0.0
-100.0
-true
-true
-"" ""
-PENS
-"CC" 1.0 0 -10899396 true "" "plotxy ticks count turtles with [is-cc? and first tag-string = 1] / count turtles with [ first tag-string = 1 ] * 100"
-"CD" 1.0 0 -2674135 true "" "plotxy ticks count turtles with [is-cd? and first tag-string = 1] / count turtles with [ first tag-string = 1 ] * 100"
-"DC" 1.0 0 -1184463 true "" "plotxy ticks count turtles with [is-dc? and first tag-string = 1] / count turtles with [ first tag-string = 1 ] * 100"
-"DD" 1.0 0 -16777216 true "" "plotxy ticks count turtles with [is-dd? and first tag-string = 1] / count turtles with [ first tag-string = 1 ] * 100"
-
-PLOT
-704
-571
-1047
-809
-Red Strategy Counts
-time
-percentage
-0.0
-10.0
-0.0
-100.0
-true
-true
-"" ""
-PENS
-"CC" 1.0 0 -10899396 true "" "plotxy ticks count turtles with [is-cc? and first tag-string = 0] / count turtles with [ first tag-string = 0 ] * 100"
-"CD" 1.0 0 -2674135 true "" "plotxy ticks count turtles with [is-cd? and first tag-string = 0] / count turtles with [ first tag-string = 0 ] * 100"
-"DC" 1.0 0 -1184463 true "" "plotxy ticks count turtles with [is-dc? and first tag-string = 0] / count turtles with [ first tag-string = 0 ] * 100"
-"DD" 1.0 0 -16777216 true "" "plotxy ticks count turtles with [is-dd? and first tag-string = 0] / count turtles with [ first tag-string = 0 ] * 100"
 
 PLOT
 832
@@ -441,17 +414,17 @@ num-tags
 num-tags
 0
 20
-1.0
+2.0
 1
 1
 NIL
 HORIZONTAL
 
 BUTTON
-927
-414
-1009
-447
+9
+535
+91
+568
 NIL
 run-tests
 NIL
@@ -653,6 +626,18 @@ dot
 false
 0
 Circle -7500403 true true 90 90 120
+
+empty square
+false
+1
+Polygon -16777216 true false 0 0 0 300 300 300 300 0 15 0 15 15 285 15 285 285 15 285 15 0
+Rectangle -2674135 false true 15 15 285 285
+
+empty triangle
+false
+1
+Polygon -16777216 true false 150 15 285 285 15 285 150 15 150 0 0 0 0 300 300 300 300 0 150 0
+Polygon -2674135 false true 150 15 15 285 285 285 150 15
 
 face happy
 false

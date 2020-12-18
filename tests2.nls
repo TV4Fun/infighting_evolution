@@ -11,6 +11,15 @@ to expect [ command expected-result ]
   [ show (word "expect '" command "' '" expected-result "' passed.") ]
 end
 
+to expect-approx [ command expected-result tolerance ]
+  let actual-result runresult command
+  ifelse abs (actual-result - expected-result) > tolerance [
+    show (word "WARNING: Command '" command "' expected result '" expected-result "' but actually returned result '" actual-result "'.")
+    set tests-passed? false
+  ]
+  [ show (word "expect '" command "' '" expected-result "' passed.") ]
+end
+
 to expect-stat [ name stat expectation stddev ]
   ;; Expect that a given randomly-generated stat is within 2.5 standard deviations of the mean.
   let min-allowed expectation - 3 * stddev
@@ -60,6 +69,8 @@ to test-tests
   expect-failure "expect-stat \"test-stat\" 7.01 1 2"
   expect-pass "expect-stat \"test-stat\" 7 1 2"
   expect-pass "expect-stat \"test-stat\" -5 1 2"
+  expect-failure "expect-approx \"1\" 0 0.9"
+  expect-pass "expect-approx \"1\" 0 1"
 end
 
 to test-hamming-distance
@@ -80,17 +91,14 @@ to test-hamming-distance
   expect "hamming-distance [1 0 0 0] [0 0 1 1]" 3
 end
 
-;; 1-tag tests and helper methods
+;; n-tag tests and helper methods
 ;; for testing, create a turtle with specific values
-to-report create-specific-turtle [ new-tag-string new-is-cosmopolitan? new-difference-threshold ]  ;; patch procedure
+to-report create-turtle-with-strategy [ new-is-cosmopolitan? new-difference-threshold ]  ;; patch procedure
   let new-turtle nobody
   sprout 1 [
-    set tag-string new-tag-string
     set is-cosmopolitan? new-is-cosmopolitan?
     ;; Set difference threshold to a random value in the range [0, num-tags + 1]
     set different-threshold new-difference-threshold
-    ;; Set the color of the agent based on tag string
-    update-color
     ;; change the shape of the agent on the basis of the strategy
     update-shape
     set new-turtle self
@@ -98,62 +106,156 @@ to-report create-specific-turtle [ new-tag-string new-is-cosmopolitan? new-diffe
   report new-turtle
 end
 
-to expect-cc [ new-difference-threshold new-is-cosmopolitan? ]
-  let new-turtle create-specific-turtle [0] new-is-cosmopolitan? new-difference-threshold
+to-report create-turtle-with-tag-string [ new-tag-string ]  ;; patch procedure
+  let new-turtle nobody
+  sprout 1 [
+    set is-cosmopolitan? false
+    set different-threshold 0
+    set tag-string new-tag-string
+    ;; Set the color of the agent based on tag string
+    update-color
+    set new-turtle self
+  ]
+  report new-turtle
+end
+
+to expect-c [ new-difference-threshold new-is-cosmopolitan? ]
+  let new-turtle create-turtle-with-strategy new-is-cosmopolitan? new-difference-threshold
   ask new-turtle [
-    expect "is-cc?" true
-    expect "is-cd?" false
-    expect "is-dc?" false
-    expect "is-dd?" false
-    expect "shape" "circle"
+    expect "is-c?" true
+    expect "is-d?" false
+    if num-tags > 0 [
+      expect "is-dcc?" false
+      expect "is-cdd?" false
+    ]
+    if num-tags > 1 [
+      expect "is-ccd?" false
+      expect "is-ddc?" false
+    ]
     die
   ]
 end
 
-to expect-cd [ new-difference-threshold new-is-cosmopolitan? ]
-  let new-turtle create-specific-turtle [0] new-is-cosmopolitan? new-difference-threshold
+to expect-d [ new-difference-threshold new-is-cosmopolitan? ]
+  let new-turtle create-turtle-with-strategy new-is-cosmopolitan? new-difference-threshold
   ask new-turtle [
-    expect "is-cc?" false
-    expect "is-cd?" true
-    expect "is-dc?" false
-    expect "is-dd?" false
-    expect "shape" "circle 2"
+    expect "is-c?" false
+    expect "is-d?" true
+    if num-tags > 0 [
+      expect "is-dcc?" false
+      expect "is-cdd?" false
+    ]
+    if num-tags > 1 [
+      expect "is-ccd?" false
+      expect "is-ddc?" false
+    ]
     die
   ]
 end
 
-to expect-dc [ new-difference-threshold new-is-cosmopolitan? ]
-  let new-turtle create-specific-turtle [0] new-is-cosmopolitan? new-difference-threshold
+to expect-dcc [ new-difference-threshold new-is-cosmopolitan? ]
+  let new-turtle create-turtle-with-strategy new-is-cosmopolitan? new-difference-threshold
   ask new-turtle [
-    expect "is-cc?" false
-    expect "is-cd?" false
-    expect "is-dc?" true
-    expect "is-dd?" false
-    expect "shape" "square"
+    expect "is-c?" false
+    expect "is-d?" false
+    expect "is-dcc?" true
+    expect "is-cdd?" false
+    if num-tags > 1 [
+      expect "is-ccd?" false
+      expect "is-ddc?" false
+    ]
     die
   ]
 end
 
-to expect-dd [ new-difference-threshold new-is-cosmopolitan? ]
-  let new-turtle create-specific-turtle [0] new-is-cosmopolitan? new-difference-threshold
+to expect-cdd [ new-difference-threshold new-is-cosmopolitan? ]
+  let new-turtle create-turtle-with-strategy new-is-cosmopolitan? new-difference-threshold
   ask new-turtle [
-    expect "is-cc?" false
-    expect "is-cd?" false
-    expect "is-dc?" false
-    expect "is-dd?" true
-    expect "shape" "square 2"
+    expect "is-c?" false
+    expect "is-d?" false
+    expect "is-dcc?" false
+    expect "is-cdd?" true
+    if num-tags > 1 [
+      expect "is-ccd?" false
+      expect "is-ddc?" false
+    ]
     die
+  ]
+end
+
+to expect-ddc [ new-difference-threshold new-is-cosmopolitan? ]
+  let new-turtle create-turtle-with-strategy new-is-cosmopolitan? new-difference-threshold
+  ask new-turtle [
+    expect "is-c?" false
+    expect "is-d?" false
+    expect "is-dcc?" false
+    expect "is-cdd?" false
+    expect "is-ccd?" false
+    expect "is-ddc?" true
+    die
+  ]
+end
+
+to expect-ccd [ new-difference-threshold new-is-cosmopolitan? ]
+  let new-turtle create-turtle-with-strategy new-is-cosmopolitan? new-difference-threshold
+  ask new-turtle [
+    expect "is-c?" false
+    expect "is-d?" false
+    expect "is-dcc?" false
+    expect "is-cdd?" false
+    expect "is-ccd?" true
+    expect "is-ddc?" false
+    die
+  ]
+end
+
+to test-0-tag-strategies
+  ask patch 0 0 [
+    expect-c 1 false
+    expect-c 0 true
+    expect-d 1 true
+    expect-d 0 false
   ]
 end
 
 to test-1-tag-strategies
   ask patch 0 0 [
-    expect-cc 2 false
-    expect-cc 0 true
-    expect-cd 1 false
-    expect-dc 1 true
-    expect-dd 2 true
-    expect-dd 0 false
+    expect-c 2 false
+    expect-c 0 true
+    expect-cdd 1 false
+    expect-dcc 1 true
+    expect-d 2 true
+    expect-d 0 false
+  ]
+end
+
+to test-2-tag-strategies
+  ask patch 0 0 [
+    expect-c 3 false
+    expect-c 0 true
+    expect-cdd 1 false
+    expect-dcc 1 true
+    expect-d 3 true
+    expect-d 0 false
+    expect-ccd 2 false
+    expect-ddc 2 true
+  ]
+end
+
+to expect-hue [ new-tag-string hue ]
+  let new-turtle create-turtle-with-tag-string new-tag-string
+  ask new-turtle [
+    expect-approx "first extract-hsb color" hue 1  ;; Can't test for an exact value due to the imprecision of the color model.
+    die
+  ]
+end
+
+to test-2-tag-colors
+  ask patch 0 0 [
+    expect-hue [ 0 0 ] 225
+    expect-hue [ 0 1 ] 315
+    expect-hue [ 1 0 ] 135
+    expect-hue [ 1 1 ] 45
   ]
 end
 
@@ -211,19 +313,19 @@ to test-1-tag-cooperation
   ]
   crt 1 [ set tag-string [ 1 ] ]
   ask turtle 0 [
-    expect "is-dd?" true
+    expect "is-d?" true
     expect "should-cooperate? turtle 1" false
     expect "should-cooperate? turtle 2" false
     set different-threshold 1
-    expect "is-cd?" true
+    expect "is-cdd?" true
     expect "should-cooperate? turtle 1" true
     expect "should-cooperate? turtle 2" false
     set is-cosmopolitan? true
-    expect "is-dc?" true
+    expect "is-dcc?" true
     expect "should-cooperate? turtle 1" false
     expect "should-cooperate? turtle 2" true
     set different-threshold 0
-    expect "is-cc?" true
+    expect "is-c?" true
     expect "should-cooperate? turtle 1" true
     expect "should-cooperate? turtle 2" true
   ]
@@ -274,7 +376,7 @@ to test-1-tag-interaction-cd
     ]
   ]
   ask turtles-on patch 0 0 [
-    expect "is-cd?" true
+    expect "is-cdd?" true
     interact
     expect "ptr" -0.02
     die
@@ -343,7 +445,7 @@ to test-1-tag-interaction-dd
     ]
   ]
   ask turtles-on patch 0 0 [
-    expect "is-dd?" true
+    expect "is-d?" true
     interact
     expect "ptr" 0
     die
@@ -412,7 +514,7 @@ to test-1-tag-interaction-cc
     ]
   ]
   ask turtles-on patch 0 0 [
-    expect "is-cc?" true
+    expect "is-c?" true
     interact
     expect "ptr" -0.03
     die
@@ -481,7 +583,7 @@ to test-1-tag-interaction-dc
     ]
   ]
   ask turtles-on patch 0 0 [
-    expect "is-dc?" true
+    expect "is-dcc?" true
     interact
     expect "ptr" -0.01
     die
@@ -506,8 +608,12 @@ to test-1-tag-interaction-dc
   set gain-of-receiving old-gain-of-receiving
 end
 
+to test-0-tag
+  set num-tags 0
+  test-0-tag-strategies
+end
+
 to test-1-tag
-  let old-num-tags num-tags
   set num-tags 1
   test-1-tag-strategies
   test-1-tag-differences
@@ -516,6 +622,19 @@ to test-1-tag
   test-1-tag-interaction-dd
   test-1-tag-interaction-cc
   test-1-tag-interaction-dc
+end
+
+to test-2-tag
+  set num-tags 2
+  test-2-tag-strategies
+  test-2-tag-colors
+end
+
+to test-n-tag
+  let old-num-tags num-tags
+  test-0-tag
+  test-1-tag
+  test-2-tag
   set num-tags old-num-tags
 end
 
@@ -563,10 +682,10 @@ to test-single-1-tag-mutation-at-rate [ the-mutation-rate ]
   expect-binomial "different-threshold = 0" count turtles with [ different-threshold = 0 ] num-turtles mutation-rate / 2
   expect-binomial "different-threshold = 2" count turtles with [ different-threshold = 2 ] num-turtles mutation-rate / 2
   ; Those were the internal parameters. A check of actual strategies would be useful too.
-  expect-binomial "is-dc?" count turtles with [ is-dc? ] num-turtles mutation-rate * (1 - mutation-rate)  ;; Mutated is-cosmopolitan? and didn't mutate different-threshold
-  expect-binomial "is-cc?" count turtles with [ is-cc? ] num-turtles mutation-rate / 2 * (1 - mutation-rate) + mutation-rate ^ 2 / 2  ;; Mutated different-threshold to 2 and didn't mutate is-cosmopolitan? or mutated different-threshold to 0 and mutated is-cosmopolitan?
-  expect-binomial "is-dd?" count turtles with [ is-dd? ] num-turtles mutation-rate / 2 * (1 - mutation-rate) + mutation-rate ^ 2 / 2  ;; Mutated different-threshold to 0 and didn't mutate is-cosmopolitan? or mutated different-threshold to 2 and mutated is-cosmopolitan?
-  expect-binomial "is-cd?" count turtles with [ is-cd? ] num-turtles (1 - mutation-rate) ^ 2  ;; Didn't mutate either is-cosmopolitan? or different-threshold
+  expect-binomial "is-dcc?" count turtles with [ is-dcc? ] num-turtles mutation-rate * (1 - mutation-rate)  ;; Mutated is-cosmopolitan? and didn't mutate different-threshold
+  expect-binomial "is-c?" count turtles with [ is-c? ] num-turtles mutation-rate / 2 * (1 - mutation-rate) + mutation-rate ^ 2 / 2  ;; Mutated different-threshold to 2 and didn't mutate is-cosmopolitan? or mutated different-threshold to 0 and mutated is-cosmopolitan?
+  expect-binomial "is-d?" count turtles with [ is-d? ] num-turtles mutation-rate / 2 * (1 - mutation-rate) + mutation-rate ^ 2 / 2  ;; Mutated different-threshold to 0 and didn't mutate is-cosmopolitan? or mutated different-threshold to 2 and mutated is-cosmopolitan?
+  expect-binomial "is-cdd?" count turtles with [ is-cdd? ] num-turtles (1 - mutation-rate) ^ 2  ;; Didn't mutate either is-cosmopolitan? or different-threshold
 end
 
 ;;Tests for mutation
@@ -665,7 +784,7 @@ to run-tests
   set tests-passed? true
   test-tests
   test-hamming-distance
-  test-1-tag
+  test-n-tag
   test-probabilistic
   ifelse tests-passed?
   [ print "All tests passed." ]
