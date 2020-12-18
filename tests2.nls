@@ -14,7 +14,7 @@ end
 to expect-approx [ command expected-result tolerance ]
   let actual-result runresult command
   ifelse abs (actual-result - expected-result) > tolerance [
-    show (word "WARNING: Command '" command "' expected result '" expected-result "' but actually returned result '" actual-result "'.")
+    show (word "WARNING: Command '" command "' expected result '" expected-result "' +/- '" tolerance "' but actually returned result '" actual-result "'.")
     set tests-passed? false
   ]
   [ show (word "expect '" command "' '" expected-result "' passed.") ]
@@ -252,10 +252,10 @@ end
 
 to test-2-tag-colors
   ask patch 0 0 [
-    expect-hue [ 0 0 ] 225
-    expect-hue [ 0 1 ] 315
-    expect-hue [ 1 0 ] 135
-    expect-hue [ 1 1 ] 45
+    expect-hue [ 0 0 ] 180
+    expect-hue [ 0 1 ] 270
+    expect-hue [ 1 0 ] 90
+    expect-hue [ 1 1 ] 0
   ]
 end
 

@@ -5,7 +5,9 @@ turtles-own [ ptr is-cosmopolitan? different-threshold tag-string ]
 ;; creates a world with exactly one agent on the corner patch
 to setup
   clear-all
-  ask patch 0 0 [ create-turtle ]
+  if not fixed-random-seed? [ set current-random-seed new-seed ]
+  random-seed current-random-seed
+  ask n-of num-starting-agents patches [ create-turtle ]
   reset-ticks
 end
 
@@ -16,7 +18,7 @@ to create-turtle  ;; patch procedure
     set tag-string random-tag-string
     set is-cosmopolitan? ifelse-value random 2 = 0 [true][false]
     ;; Set difference threshold to a random value in the range [0, num-tags + 1]
-    set different-threshold random num-tags + 2
+    set different-threshold random (num-tags + 2)
     ;; Set the color of the agent based on tag string
     update-color
     ;; change the shape of the agent on the basis of the strategy
@@ -74,6 +76,10 @@ to reproduce  ;; turtle procedure
       hatch 1 [
         move-to destination
         mutate
+        ;; Update the color in case the tag string changed
+        update-color
+        ;; make sure the shape of the agent reflects its strategy
+        update-shape
       ]
     ]
   ]
@@ -92,10 +98,6 @@ to mutate  ;; turtle procedure
     [ if different-threshold > 0 [ set different-threshold different-threshold - 1 ] ]
     [ if different-threshold <= num-tags [ set different-threshold different-threshold + 1 ] ]
   ]
-  ;; Update the color in case the tag string changed
-  update-color
-  ;; make sure the shape of the agent reflects its strategy
-  update-shape
 end
 
 to death  ;; turtle procedure
@@ -111,7 +113,7 @@ to update-color
   [ set color red ]
   [
     let hue 180 * first tag-string
-    if num-tags > 1 [ set hue atan (first tag-string - 0.5) (last tag-string - 0.5) ]
+    if num-tags > 1 [ set hue (atan (first tag-string - 0.5) (last tag-string - 0.5)) - 45 ]
     set color hsb hue 100 100
     let brightness 0
     ifelse is-cosmopolitan?
@@ -178,13 +180,13 @@ to-report is-ddc?
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-323
+326
 10
-826
-514
+1138
+823
 -1
 -1
-9.71
+4.0
 1
 10
 1
@@ -194,10 +196,10 @@ GRAPHICS-WINDOW
 1
 1
 1
--25
-25
--25
-25
+-100
+100
+-100
+100
 1
 1
 1
@@ -205,25 +207,25 @@ ticks
 30.0
 
 SLIDER
-5
-150
-171
-183
+8
+74
+174
+107
 mutation-rate
 mutation-rate
 0.0
 1.0
-0.005
+0.001
 0.0010
 1
 NIL
 HORIZONTAL
 
 SLIDER
-5
-184
-171
-217
+8
+108
+174
+141
 death-rate
 death-rate
 0.0
@@ -235,10 +237,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-172
-150
-318
-183
+175
+74
+321
+107
 initial-PTR
 initial-PTR
 0.0
@@ -250,10 +252,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-172
-184
-318
-217
+175
+108
+321
+141
 cost-of-giving
 cost-of-giving
 0.0
@@ -265,10 +267,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-172
-218
-318
-251
+175
+142
+321
+175
 gain-of-receiving
 gain-of-receiving
 0.0
@@ -297,10 +299,10 @@ NIL
 0
 
 PLOT
-6
-323
-318
-525
+9
+247
+321
+449
 Strategy Counts
 time
 count
@@ -319,41 +321,11 @@ PENS
 "CCD" 1.0 0 -955883 true "" "plotxy ticks count turtles with [is-ccd?]"
 "DDC" 1.0 0 -11221820 true "" "plotxy ticks count turtles with [is-ddc?]"
 
-SLIDER
-5
-252
-318
-285
-immigrant-chance-cooperate-with-same
-immigrant-chance-cooperate-with-same
-0.0
-1.0
-0.5
-0.01
-1
-NIL
-HORIZONTAL
-
-SLIDER
-5
-286
-318
-319
-immigrant-chance-cooperate-with-different
-immigrant-chance-cooperate-with-different
-0.0
-1.0
-0.5
-0.01
-1
-NIL
-HORIZONTAL
-
 PLOT
-841
-365
-1184
-614
+1154
+357
+1497
+606
 Tag String Counts
 time
 count
@@ -365,10 +337,10 @@ true
 true
 "" ""
 PENS
-"[0 1]" 1.0 0 -5825686 true "" "plotxy ticks count turtles with [ tag-string = [ 0 1 ] ]"
+"[0 1]" 1.0 0 -8630108 true "" "plotxy ticks count turtles with [ tag-string = [ 0 1 ] ]"
 "[1 0]" 1.0 0 -13840069 true "" "plotxy ticks count turtles with [ tag-string = [ 1 0 ] ]"
-"[1 1]" 1.0 0 -955883 true "" "plotxy ticks count turtles with [ tag-string = [ 1 1 ] ]"
-"[0 0]" 1.0 0 -13345367 true "" "plotxy ticks count turtles with [ tag-string = [ 0 0 ] ]"
+"[1 1]" 1.0 0 -2674135 true "" "plotxy ticks count turtles with [ tag-string = [ 1 1 ] ]"
+"[0 0]" 1.0 0 -11221820 true "" "plotxy ticks count turtles with [ tag-string = [ 0 0 ] ]"
 
 BUTTON
 105
@@ -388,10 +360,10 @@ NIL
 1
 
 PLOT
-832
-28
-1187
-360
+1153
+10
+1508
+342
 Total Population
 time
 count
@@ -406,10 +378,10 @@ PENS
 "default" 1.0 0 -16777216 true "" "plotxy ticks count turtles"
 
 SLIDER
-5
-219
-170
-252
+8
+143
+173
+176
 num-tags
 num-tags
 0
@@ -421,10 +393,10 @@ NIL
 HORIZONTAL
 
 BUTTON
-9
-535
-91
-568
+12
+459
+94
+492
 NIL
 run-tests
 NIL
@@ -436,6 +408,71 @@ NIL
 NIL
 NIL
 1
+
+SLIDER
+5
+181
+177
+214
+num-starting-agents
+num-starting-agents
+1
+100
+30.0
+1
+1
+NIL
+HORIZONTAL
+
+MONITOR
+255
+456
+312
+501
+NIL
+ticks
+17
+1
+11
+
+BUTTON
+22
+28
+97
+61
+go once
+go
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+INPUTBOX
+111
+452
+227
+512
+current-random-seed
+-5.33075134E8
+1
+0
+Number
+
+SWITCH
+83
+521
+249
+554
+fixed-random-seed?
+fixed-random-seed?
+0
+1
+-1000
 
 @#$#@#$#@
 ## WHAT IS IT?
