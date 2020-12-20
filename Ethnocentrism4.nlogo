@@ -109,18 +109,15 @@ to death  ;; turtle procedure
 end
 
 to update-color
-  ifelse num-tags = 0
-  [ set color red ]
-  [
-    let hue 180 * first tag-string
-    if num-tags > 1 [ set hue (atan (first tag-string - 0.5) (last tag-string - 0.5)) - 45 ]
-    set color hsb hue 100 100
-    let brightness 0
-    ifelse is-cosmopolitan?
-    [ set brightness 100 * (1 - different-threshold / (num-tags + 1)) ]
-    [ set brightness 100 * different-threshold / (num-tags + 1) ]
-    set pcolor hsb hue 100 brightness
-  ]
+  let hue 0
+  if num-tags = 1 [ set hue 180 * first tag-string ]
+  if num-tags > 1 [ set hue (atan (first tag-string - 0.5) (last tag-string - 0.5)) - 45 ]
+  set color hsb hue 100 100
+  let brightness 0
+  ifelse is-cosmopolitan?
+  [ set brightness 100 * (1 - different-threshold / (num-tags + 1)) ]
+  [ set brightness 100 * different-threshold / (num-tags + 1) ]
+  set pcolor hsb hue 100 brightness
 end
 
 ;; make sure the shape matches the strategy
@@ -160,11 +157,11 @@ to-report is-c?
 end
 
 to-report is-cdd?
-  report different-threshold = 1 and not is-cosmopolitan?
+  report num-tags > 0  and different-threshold = 1 and not is-cosmopolitan?
 end
 
 to-report is-dcc?
-  report different-threshold = 1 and is-cosmopolitan?
+  report num-tags > 0 and different-threshold = 1 and is-cosmopolitan?
 end
 
 to-report is-d?
@@ -172,11 +169,11 @@ to-report is-d?
 end
 
 to-report is-ccd?
-  report not is-cosmopolitan? and different-threshold = 2
+  report num-tags > 1 and not is-cosmopolitan? and different-threshold = 2
 end
 
 to-report is-ddc?
-  report is-cosmopolitan? and different-threshold = 2
+  report num-tags > 1 and is-cosmopolitan? and different-threshold = 2
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -216,7 +213,7 @@ mutation-rate
 0.0
 1.0
 0.001
-0.0010
+0.0001
 1
 NIL
 HORIZONTAL
@@ -386,7 +383,7 @@ num-tags
 num-tags
 0
 20
-2.0
+1.0
 1
 1
 NIL

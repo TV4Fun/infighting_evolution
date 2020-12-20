@@ -17,7 +17,7 @@ to expect-approx [ command expected-result tolerance ]
     show (word "WARNING: Command '" command "' expected result '" expected-result "' +/- '" tolerance "' but actually returned result '" actual-result "'.")
     set tests-passed? false
   ]
-  [ show (word "expect '" command "' '" expected-result "' passed.") ]
+  [ show (word "expect-approx '" command "' '" expected-result "' '" tolerance "' passed.") ]
 end
 
 to expect-stat [ name stat expectation stddev ]
@@ -124,14 +124,10 @@ to expect-c [ new-difference-threshold new-is-cosmopolitan? ]
   ask new-turtle [
     expect "is-c?" true
     expect "is-d?" false
-    if num-tags > 0 [
-      expect "is-dcc?" false
-      expect "is-cdd?" false
-    ]
-    if num-tags > 1 [
-      expect "is-ccd?" false
-      expect "is-ddc?" false
-    ]
+    expect "is-dcc?" false
+    expect "is-cdd?" false
+    expect "is-ccd?" false
+    expect "is-ddc?" false
     die
   ]
 end
@@ -141,14 +137,10 @@ to expect-d [ new-difference-threshold new-is-cosmopolitan? ]
   ask new-turtle [
     expect "is-c?" false
     expect "is-d?" true
-    if num-tags > 0 [
-      expect "is-dcc?" false
-      expect "is-cdd?" false
-    ]
-    if num-tags > 1 [
-      expect "is-ccd?" false
-      expect "is-ddc?" false
-    ]
+    expect "is-dcc?" false
+    expect "is-cdd?" false
+    expect "is-ccd?" false
+    expect "is-ddc?" false
     die
   ]
 end
@@ -160,10 +152,8 @@ to expect-dcc [ new-difference-threshold new-is-cosmopolitan? ]
     expect "is-d?" false
     expect "is-dcc?" true
     expect "is-cdd?" false
-    if num-tags > 1 [
-      expect "is-ccd?" false
-      expect "is-ddc?" false
-    ]
+    expect "is-ccd?" false
+    expect "is-ddc?" false
     die
   ]
 end
@@ -175,10 +165,8 @@ to expect-cdd [ new-difference-threshold new-is-cosmopolitan? ]
     expect "is-d?" false
     expect "is-dcc?" false
     expect "is-cdd?" true
-    if num-tags > 1 [
-      expect "is-ccd?" false
-      expect "is-ddc?" false
-    ]
+    expect "is-ccd?" false
+    expect "is-ddc?" false
     die
   ]
 end
