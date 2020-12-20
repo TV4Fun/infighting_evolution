@@ -1,7 +1,7 @@
-__includes["tests2.nls"]
+;__includes["tests2.nls"]
 
 ;; agents have a probablity to reproduce and a strategy
-turtles-own [ ptr is-cosmopolitan? different-threshold tag-string ]
+turtles-own [ ptr is-cosmopolitan? different-threshold tag-string mutation-rate ]
 ;; creates a world with exactly one agent on the corner patch
 to setup
   clear-all
@@ -15,6 +15,7 @@ end
 ;; creates a new agent in the world
 to create-turtle  ;; patch procedure
   sprout 1 [
+    set mutation-rate initial-mutation-rate
     set tag-string random-tag-string
     set is-cosmopolitan? ifelse-value random 2 = 0 [true][false]
     ;; Set difference threshold to a random value in the range [0, num-tags + 1]
@@ -97,6 +98,11 @@ to mutate  ;; turtle procedure
     ifelse random 2 = 0
     [ if different-threshold > 0 [ set different-threshold different-threshold - 1 ] ]
     [ if different-threshold <= num-tags [ set different-threshold different-threshold + 1 ] ]
+  ]
+  if mutate-mutation? and random-float 1.0 < mutation-rate [
+    ifelse random 2 = 0
+    [ set mutation-rate mutation-rate * 1.5 ]
+    [ set mutation-rate mutation-rate / 1.5 ]
   ]
 end
 
@@ -204,12 +210,12 @@ ticks
 30.0
 
 SLIDER
-8
+7
 74
-174
+173
 107
-mutation-rate
-mutation-rate
+initial-mutation-rate
+initial-mutation-rate
 0.0
 1.0
 0.001
@@ -383,28 +389,11 @@ num-tags
 num-tags
 0
 20
-1.0
+2.0
 1
 1
 NIL
 HORIZONTAL
-
-BUTTON
-12
-459
-94
-492
-NIL
-run-tests
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
 
 SLIDER
 5
@@ -467,6 +456,57 @@ SWITCH
 554
 fixed-random-seed?
 fixed-random-seed?
+0
+1
+-1000
+
+PLOT
+1533
+15
+1948
+324
+different-thresholds
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+true
+"set-plot-x-range 0 num-tags + 2" ""
+PENS
+"cosmopolitans" 1.0 1 -2674135 true "" "histogram [different-threshold] of turtles with [is-cosmopolitan?]"
+"non-cosmopolitans" 1.0 1 -11221820 true "" "histogram [different-threshold] of turtles with [not is-cosmopolitan?]"
+
+PLOT
+1517
+350
+1899
+611
+Mutation Rates
+NIL
+NIL
+0.0
+0.002
+0.0
+10.0
+true
+true
+"" "set-plot-x-range min [ log mutation-rate 2] of turtles max [ log mutation-rate 2] of turtles + 1"
+PENS
+"[0 1]" 0.2 1 -8630108 true "" "histogram [ log mutation-rate 2 ] of turtles with [tag-string = [0 1]]"
+"[1 0]" 0.2 1 -13840069 true "" "histogram [ log mutation-rate 2 ] of turtles with [tag-string = [1 0]]"
+"[1 1]" 0.2 1 -2674135 true "" "histogram [ log mutation-rate 2 ] of turtles with [tag-string = [1 1]]"
+"[0 0]" 0.2 1 -11221820 true "" "histogram [ log mutation-rate 2 ] of turtles with [tag-string = [0 0]]"
+
+SWITCH
+178
+181
+319
+214
+mutate-mutation?
+mutate-mutation?
 0
 1
 -1000
